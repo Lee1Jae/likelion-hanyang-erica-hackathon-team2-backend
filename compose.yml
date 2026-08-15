@@ -1,0 +1,21 @@
+services:
+  mysql:
+    image: mysql:8.4
+    environment:
+      MYSQL_DATABASE: bloom
+      MYSQL_USER: bloom
+      MYSQL_PASSWORD: bloom
+      MYSQL_ROOT_PASSWORD: local-root-password
+      TZ: UTC
+    ports:
+      - "3306:3306"
+    volumes:
+      - bloom-mysql-data:/var/lib/mysql
+    healthcheck:
+      test: ["CMD", "mysqladmin", "ping", "-h", "localhost", "-uroot", "-plocal-root-password"]
+      interval: 5s
+      timeout: 3s
+      retries: 20
+
+volumes:
+  bloom-mysql-data:
