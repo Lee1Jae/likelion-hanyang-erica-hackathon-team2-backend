@@ -12,6 +12,55 @@
 - Swagger/OpenAPI와 Actuator health
 - H2 기반 통합 테스트
 
+## ERD
+
+현재 팀에서 확정되어 실제 DB와 코드에 반영된 객체만 표시합니다.
+
+```mermaid
+erDiagram
+    USERS ||--|| USER_PROFILES : has
+    USERS ||--o{ REFRESH_TOKENS : owns
+
+    USERS {
+        BIGINT id PK
+        VARCHAR email UK
+        VARCHAR password_hash
+        VARCHAR nickname
+        VARCHAR role
+        TIMESTAMP created_at
+        TIMESTAMP updated_at
+    }
+
+    USER_PROFILES {
+        BIGINT id PK
+        BIGINT user_id FK,UK
+        DATE birth_date
+        DATE delivery_date
+        DECIMAL height_cm
+        DECIMAL weight_kg
+        DATE last_period_date
+        INT cycle_length
+        TEXT beauty_goals
+        TEXT health_issues
+        BOOLEAN onboarding_completed
+        TIMESTAMP created_at
+        TIMESTAMP updated_at
+    }
+
+    REFRESH_TOKENS {
+        BIGINT id PK
+        BIGINT user_id FK
+        VARCHAR token_hash UK
+        TIMESTAMP expires_at
+        TIMESTAMP revoked_at
+        TIMESTAMP created_at
+    }
+```
+
+- `USERS` ↔ `USER_PROFILES`: 사용자 한 명당 프로필 하나
+- `USERS` ↔ `REFRESH_TOKENS`: 사용자 한 명이 로그인 세션별 Refresh Token을 여러 개 보유 가능
+- 다이어리·식단·활동·컨디션 객체는 프론트 JSON과 팀 합의가 끝난 뒤 ERD에 추가
+
 ## 로컬 실행
 
 ```bash
