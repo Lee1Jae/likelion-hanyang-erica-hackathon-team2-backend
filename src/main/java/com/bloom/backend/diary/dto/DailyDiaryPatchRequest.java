@@ -2,6 +2,7 @@ package com.bloom.backend.diary.dto;
 
 import com.bloom.backend.diary.domain.BodyConditionTag;
 import com.bloom.backend.diary.domain.EmotionTag;
+import com.bloom.backend.diary.domain.SkinTag;
 import jakarta.validation.constraints.DecimalMax;
 import jakarta.validation.constraints.DecimalMin;
 import jakarta.validation.constraints.Digits;
@@ -21,7 +22,7 @@ public record DailyDiaryPatchRequest(
         @Size(max = 16) List<EmotionTag> emotionTags,
         @Size(max = 11) List<BodyConditionTag> bodyTags,
         @Min(0) @Max(10000) Integer waterMl,
-        @Size(max = 10) List<@Size(max = 30) String> skin,
+        @Size(max = 12) List<SkinTag> skin,
         LocalDate periodStart,
         LocalDate periodEnd,
         @Size(max = 1000) String memo

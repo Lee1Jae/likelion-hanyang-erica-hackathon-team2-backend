@@ -82,13 +82,13 @@ class DiaryControllerIntegrationTests {
                         .content("""
                                 {"date":"2026-08-15","weightKg":61.2,"emotionScore":5,"bodyScore":3,
                                  "emotionTags":["HAPPY","STRESS"],"bodyTags":["LOWER_BACK_PAIN"],
-                                 "waterMl":1800,"skin":["DRY","SENSITIVE"],
+                                 "waterMl":1800,"skin":["DRYNESS","SENSITIVITY"],
                                  "periodStart":"2026-08-14","periodEnd":"2026-08-18","memo":"회복 중"}
                                 """))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.weightKg").value(61.2))
                 .andExpect(jsonPath("$.waterMl").value(1800))
-                .andExpect(jsonPath("$.skin[1]").value("SENSITIVE"));
+                .andExpect(jsonPath("$.skin[1]").value("SENSITIVITY"));
 
         mockMvc.perform(post("/api/v1/diaries/2026-08-15/activities")
                         .header("Authorization", "Bearer " + accessToken)

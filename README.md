@@ -251,6 +251,7 @@ src/main/java/com/bloom/backend
 DB 변경은 JPA 자동 생성이 아니라 `src/main/resources/db/migration`의 Flyway SQL로 관리합니다.
 
 프론트 연동에 사용하는 확정 필드와 enum 목록은 [MVP API 명세](docs/API_SPEC.md)를 기준으로 합니다.
+AI 기능은 구현 전 검토용 [AI API 명세 초안](docs/AI_API_DRAFT.md)에 공개 API와 내부 AI API를 분리해 정리합니다.
 
 ## 협업 규칙
 

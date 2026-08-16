@@ -34,7 +34,7 @@ Content-Type: application/json
   "emotionTags": ["HAPPY", "STRESS"],
   "bodyTags": ["MENSTRUATING", "LOWER_BACK_PAIN"],
   "waterMl": 1800,
-  "skin": ["DRY", "SENSITIVE"],
+  "skin": ["DRYNESS", "SENSITIVITY"],
   "periodStart": "2026-08-14",
   "periodEnd": "2026-08-18",
   "memo": "회복 중"
@@ -50,7 +50,7 @@ Content-Type: application/json
 | `emotionTags` | enum[] | X | 감정 태그, 최대 16개 |
 | `bodyTags` | enum[] | X | 생리주기·신체상태·식욕 태그, 최대 11개 |
 | `waterMl` | integer | X | 0~10000ml |
-| `skin` | string[] | X | 피부 태그, 별도 enum 합의 전 |
+| `skin` | SkinTag[] | X | 피부 상태 태그, 최대 12개 |
 | `periodStart` | date | X | 생리 시작일 |
 | `periodEnd` | date | X | 생리 종료일 |
 | `memo` | string | X | 최대 1000자 |
@@ -93,6 +93,23 @@ PATCH는 전달한 필드만 변경합니다. `stress`, `fatigue`, `mood`, `note
 | 식욕 | 식욕 저하 | `LOW_APPETITE` |
 | 식욕 | 식욕 보통 | `NORMAL_APPETITE` |
 | 식욕 | 식욕 증가 | `INCREASED_APPETITE` |
+
+### 피부 상태 태그
+
+| 화면 표시 | API enum |
+| --- | --- |
+| 여드름 | `ACNE` |
+| 기미 | `MELASMA` |
+| 색소침착 | `HYPERPIGMENTATION` |
+| 건조함 | `DRYNESS` |
+| 민감함 | `SENSITIVITY` |
+| 홍조 | `REDNESS` |
+| 가려움 | `ITCHING` |
+| 튼살 | `STRETCH_MARKS` |
+| 탄력 저하 | `LOSS_OF_ELASTICITY` |
+| 흉터 | `SCARRING` |
+| 유분 증가 | `OILINESS` |
+| 넓어진 모공 | `ENLARGED_PORES` |
 
 ## 2. 활동 기록
 
@@ -162,7 +179,6 @@ AI 예상 이미지는 후순위입니다. 응답의 `expectedImageUrl`은 구�
 
 ## 5. 아직 확정하지 않은 계약
 
-- 피부 상태 `skin` enum
 - AI 식단 분석 요청·응답, DRAFT/CONFIRMED 상태
 - 눈바디 파일 업로드 저장소와 AI 예상 이미지 생성
 - 추천 시술의 필드와 추천 기준

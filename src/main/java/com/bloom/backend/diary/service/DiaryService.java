@@ -5,6 +5,7 @@ import com.bloom.backend.diary.domain.BodyConditionTag;
 import com.bloom.backend.diary.domain.Diary;
 import com.bloom.backend.diary.domain.EmotionTag;
 import com.bloom.backend.diary.domain.Meal;
+import com.bloom.backend.diary.domain.SkinTag;
 import com.bloom.backend.diary.dto.ActivityRequest;
 import com.bloom.backend.diary.dto.ActivityResponse;
 import com.bloom.backend.diary.dto.DailyDiaryPatchRequest;
@@ -196,7 +197,7 @@ public class DiaryService {
         return new DailyDiaryResponse(diary.getDate(), diary.getWeightKg(), diary.getEmotionScore(),
                 diary.getBodyScore(), splitEnums(diary.getEmotionTags(), EmotionTag.class),
                 splitEnums(diary.getBodyTags(), BodyConditionTag.class),
-                diary.getWaterMl(), split(diary.getSkinConditions()),
+                diary.getWaterMl(), splitEnums(diary.getSkinConditions(), SkinTag.class),
                 diary.getPeriodStart(), diary.getPeriodEnd(), diary.getMemo(),
                 legacy.totalCalories(), legacy.calorieChange(), legacy.recommendedCalories(),
                 legacy.remainingCalories(), totalSteps, stepsChange, totalExerciseMinutes,
