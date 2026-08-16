@@ -22,6 +22,7 @@ public record DiaryResponse(
         int carbs,
         int protein,
         int fat,
+        boolean nutritionIncomplete,
         List<MealResponse> meals,
         List<ActivityResponse> activities
 ) {}

@@ -130,6 +130,27 @@ class DiaryControllerIntegrationTests {
                 .andExpect(status().isBadRequest());
     }
 
+    @Test
+    void allowsUnknownNutritionAndExcludesItFromTotals() throws Exception {
+        String accessToken = signupAndLogin();
+
+        mockMvc.perform(post("/api/v1/diaries/2026-08-16/meals")
+                        .header("Authorization", "Bearer " + accessToken)
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("""
+                                {"mealType":"SNACK","foodName":"AI가 인식하지 못한 음식",
+                                 "kcal":null,"carbs":null,"protein":null,"fat":null}
+                                """))
+                .andExpect(status().isCreated())
+                .andExpect(jsonPath("$.kcal").doesNotExist());
+
+        mockMvc.perform(get("/api/v1/diaries/2026-08-16")
+                        .header("Authorization", "Bearer " + accessToken))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.totalCalories").value(0))
+                .andExpect(jsonPath("$.nutritionIncomplete").value(true));
+    }
+
     private String signupAndLogin() throws Exception {
         String email = "diary-" + UUID.randomUUID() + "@example.com";
         mockMvc.perform(post("/api/v1/auth/signup")

@@ -10,8 +10,8 @@ import jakarta.validation.constraints.Size;
 public record MealRequest(
         @NotNull MealType mealType,
         @NotBlank @Size(max = 100) String foodName,
-        @Min(0) @Max(10000) int kcal,
-        @Min(0) @Max(1000) int carbs,
-        @Min(0) @Max(1000) int protein,
-        @Min(0) @Max(1000) int fat
+        @Min(0) @Max(10000) Integer kcal,
+        @Min(0) @Max(1000) Integer carbs,
+        @Min(0) @Max(1000) Integer protein,
+        @Min(0) @Max(1000) Integer fat
 ) {}

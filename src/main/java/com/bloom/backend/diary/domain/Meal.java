@@ -30,26 +30,26 @@ public class Meal extends BaseTimeEntity {
     @Column(name = "food_name", nullable = false, length = 100)
     private String foodName;
 
-    @Column(nullable = false)
-    private int calories;
+    @Column
+    private Integer calories;
 
-    @Column(nullable = false)
-    private int carbs;
+    @Column
+    private Integer carbs;
 
-    @Column(nullable = false)
-    private int protein;
+    @Column
+    private Integer protein;
 
-    @Column(nullable = false)
-    private int fat;
+    @Column
+    private Integer fat;
 
     protected Meal() {}
 
-    public Meal(Diary diary, MealType mealType, String foodName, int calories, int carbs, int protein, int fat) {
+    public Meal(Diary diary, MealType mealType, String foodName, Integer calories, Integer carbs, Integer protein, Integer fat) {
         this.diary = diary;
         update(mealType, foodName, calories, carbs, protein, fat);
     }
 
-    public void update(MealType mealType, String foodName, int calories, int carbs, int protein, int fat) {
+    public void update(MealType mealType, String foodName, Integer calories, Integer carbs, Integer protein, Integer fat) {
         this.mealType = mealType;
         this.foodName = foodName;
         this.calories = calories;
@@ -62,8 +62,8 @@ public class Meal extends BaseTimeEntity {
     public Diary getDiary() { return diary; }
     public MealType getMealType() { return mealType; }
     public String getFoodName() { return foodName; }
-    public int getCalories() { return calories; }
-    public int getCarbs() { return carbs; }
-    public int getProtein() { return protein; }
-    public int getFat() { return fat; }
+    public Integer getCalories() { return calories; }
+    public Integer getCarbs() { return carbs; }
+    public Integer getProtein() { return protein; }
+    public Integer getFat() { return fat; }
 }
