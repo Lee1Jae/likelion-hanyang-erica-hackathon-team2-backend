@@ -1,6 +1,29 @@
 # Bloom Backend
 
+![Java](https://img.shields.io/badge/Java-21-007396)
+![Spring Boot](https://img.shields.io/badge/Spring%20Boot-3.5.5-6DB33F)
+![License](https://img.shields.io/badge/visibility-public-blue)
+
 산후 건강·바디케어 앱의 해커톤 MVP 백엔드입니다. 프론트 화면에서 사용하는 필드명을 API 계약의 기준으로 삼습니다.
+
+> 현재 `main`: 인증, 다이어리, 식단·활동 CRUD와 일일 계산 API 구현 완료. 온보딩·기간 조회·홈·AI는 구현 예정입니다.
+
+## 빠른 시작
+
+필요 환경: Java 21, Docker Desktop
+
+```bash
+docker compose up -d
+./gradlew bootRun
+```
+
+| 용도 | 주소 |
+| --- | --- |
+| Swagger UI | `http://localhost:8080/swagger-ui.html` |
+| OpenAPI JSON | `http://localhost:8080/v3/api-docs` |
+| Health check | `http://localhost:8080/actuator/health` |
+
+기본 로컬 DB 계정은 `compose.yml`과 일치합니다. 운영 환경에서는 `.env.example`을 참고해 비밀값을 환경변수로 주입하며 실제 `.env`는 커밋하지 않습니다.
 
 ## 현재 구현 범위
 
@@ -14,6 +37,26 @@
 - Bean Validation과 공통 오류 응답
 - Swagger/OpenAPI와 Actuator health
 - H2 기반 통합 테스트
+
+## API 구현 상태
+
+기본 경로는 `/api/v1`입니다. 로그인·회원가입·재발급 외 API에는 `Authorization: Bearer <accessToken>`이 필요합니다.
+
+| 도메인 | Method | Endpoint | 상태 |
+| --- | --- | --- | --- |
+| 인증 | POST | `/auth/signup` | ✅ 완료 |
+| 인증 | POST | `/auth/login` | ✅ 완료 |
+| 인증 | POST | `/auth/reissue` | ✅ 완료 |
+| 인증 | POST | `/auth/logout` | ✅ 완료 |
+| 다이어리 | GET | `/diaries/{date}` | ✅ 완료 |
+| 다이어리 | PUT | `/diaries/{date}` | ✅ 완료 |
+| 식단 | POST | `/diaries/{date}/meals` | ✅ 완료 |
+| 식단 | PATCH / DELETE | `/meals/{mealId}` | ✅ 완료 |
+| 활동 | POST | `/diaries/{date}/activities` | ✅ 완료 |
+| 활동 | PATCH / DELETE | `/activities/{activityId}` | ✅ 완료 |
+| 사용자 | PUT / GET / PATCH | `/users/me/...` | 🟡 예정 |
+| 달력 | GET | `/diaries?from=...&to=...` | 🟡 예정 |
+| 홈·AI | - | `/home`, `/ai/...` | 🟡 예정 |
 
 ## ERD
 
@@ -147,25 +190,33 @@ API 요청·응답 키는 프론트 화면의 명칭을 그대로 사용합니�
 - `remainingCalories = recommendedCalories - totalCalories`
 - MVP의 `recommendedCalories`는 임시 기본값 `2000`; 개인화 산식 합의 후 교체
 
-## 로컬 실행
-
-```bash
-docker compose up -d
-./gradlew bootRun
-```
-
-- Swagger UI: `http://localhost:8080/swagger-ui.html`
-- Health: `http://localhost:8080/actuator/health`
-
-운영 환경에서는 `.env.example`을 참고해 모든 비밀값을 환경변수로 주입합니다. 실제 비밀값은 저장소에 커밋하지 않습니다.
-
 ## 테스트
 
 ```bash
-./gradlew test
+./gradlew clean test bootJar
 ```
 
 현재 통합 테스트는 인증 흐름, Validation 실패, 다이어리 저장, 식단·활동 기록, 일일 계산 응답을 검증합니다.
+
+## 프로젝트 구조
+
+```text
+src/main/java/com/bloom/backend
+├── auth       # JWT 인증과 Refresh Token
+├── diary      # 다이어리·식단·활동과 계산
+├── user       # 사용자·온보딩 프로필
+└── global     # 설정, 공통 Entity, 예외 처리
+```
+
+DB 변경은 JPA 자동 생성이 아니라 `src/main/resources/db/migration`의 Flyway SQL로 관리합니다.
+
+## 협업 규칙
+
+- 외부 JSON 필드 변경은 프론트 타입, Swagger, README, MVP 명세를 함께 수정합니다.
+- `skinCondition`, `menstrualStatus`, `activityAmount` 정책은 팀 합의 전 추가 확장하지 않습니다.
+- 계산값은 DB에 중복 저장하지 않고 조회 시 계산합니다.
+- `main`에는 테스트와 `bootJar` 생성이 통과한 코드만 반영합니다.
+- 자세한 브랜치·PR·계약 변경 절차는 [CONTRIBUTING.md](CONTRIBUTING.md)를 따릅니다.
 
 ## 다음 구현
 
