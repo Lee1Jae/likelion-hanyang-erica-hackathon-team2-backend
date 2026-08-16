@@ -1,7 +1,9 @@
 package com.bloom.backend.diary.service;
 
 import com.bloom.backend.diary.domain.Activity;
+import com.bloom.backend.diary.domain.BodyConditionTag;
 import com.bloom.backend.diary.domain.Diary;
+import com.bloom.backend.diary.domain.EmotionTag;
 import com.bloom.backend.diary.domain.Meal;
 import com.bloom.backend.diary.dto.ActivityRequest;
 import com.bloom.backend.diary.dto.ActivityResponse;
@@ -192,7 +194,8 @@ public class DiaryService {
         Integer burnedKcalChange = previousDiary.isEmpty() ? null
                 : totalBurnedKcal - previousActivities.stream().mapToInt(Activity::getBurnedKcal).sum();
         return new DailyDiaryResponse(diary.getDate(), diary.getWeightKg(), diary.getEmotionScore(),
-                diary.getBodyScore(), split(diary.getEmotionTags()), split(diary.getBodyTags()),
+                diary.getBodyScore(), splitEnums(diary.getEmotionTags(), EmotionTag.class),
+                splitEnums(diary.getBodyTags(), BodyConditionTag.class),
                 diary.getWaterMl(), split(diary.getSkinConditions()),
                 diary.getPeriodStart(), diary.getPeriodEnd(), diary.getMemo(),
                 legacy.totalCalories(), legacy.calorieChange(), legacy.recommendedCalories(),
@@ -201,11 +204,16 @@ public class DiaryService {
                 legacy.meals(), legacy.activities());
     }
 
-    private String join(List<String> values) {
-        return values == null ? null : String.join(",", values);
+    private String join(List<?> values) {
+        return values == null ? null : values.stream().map(Object::toString)
+                .reduce((left, right) -> left + "," + right).orElse("");
     }
 
     private List<String> split(String values) {
         return values == null || values.isBlank() ? List.of() : List.of(values.split(","));
+    }
+
+    private <E extends Enum<E>> List<E> splitEnums(String values, Class<E> enumType) {
+        return split(values).stream().map(value -> Enum.valueOf(enumType, value)).toList();
     }
 }

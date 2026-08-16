@@ -250,6 +250,8 @@ src/main/java/com/bloom/backend
 
 DB 변경은 JPA 자동 생성이 아니라 `src/main/resources/db/migration`의 Flyway SQL로 관리합니다.
 
+프론트 연동에 사용하는 확정 필드와 enum 목록은 [MVP API 명세](docs/API_SPEC.md)를 기준으로 합니다.
+
 ## 협업 규칙
 
 - 외부 JSON 필드 변경은 프론트 타입, Swagger, README, MVP 명세를 함께 수정합니다.

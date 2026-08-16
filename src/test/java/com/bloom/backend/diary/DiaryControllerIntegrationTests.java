@@ -81,7 +81,7 @@ class DiaryControllerIntegrationTests {
                         .contentType(MediaType.APPLICATION_JSON)
                         .content("""
                                 {"date":"2026-08-15","weightKg":61.2,"emotionScore":5,"bodyScore":3,
-                                 "emotionTags":["HAPPY","STRESS"],"bodyTags":["BACK_PAIN"],
+                                 "emotionTags":["HAPPY","STRESS"],"bodyTags":["LOWER_BACK_PAIN"],
                                  "waterMl":1800,"skin":["DRY","SENSITIVE"],
                                  "periodStart":"2026-08-14","periodEnd":"2026-08-18","memo":"회복 중"}
                                 """))
@@ -115,6 +115,19 @@ class DiaryControllerIntegrationTests {
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$[0].date").value("2026-08-15"))
                 .andExpect(jsonPath("$[0].weightKg").value(61.2));
+    }
+
+    @Test
+    void rejectsUnknownConditionTag() throws Exception {
+        String accessToken = signupAndLogin();
+
+        mockMvc.perform(patch("/api/v1/diary/daily")
+                        .header("Authorization", "Bearer " + accessToken)
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("""
+                                {"date":"2026-08-16","emotionTags":["UNKNOWN_EMOTION"]}
+                                """))
+                .andExpect(status().isBadRequest());
     }
 
     private String signupAndLogin() throws Exception {

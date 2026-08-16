@@ -1,5 +1,7 @@
 package com.bloom.backend.diary.dto;
 
+import com.bloom.backend.diary.domain.BodyConditionTag;
+import com.bloom.backend.diary.domain.EmotionTag;
 import java.math.BigDecimal;
 import java.time.LocalDate;
 import java.util.List;
@@ -9,8 +11,8 @@ public record DailyDiaryResponse(
         BigDecimal weightKg,
         Integer emotionScore,
         Integer bodyScore,
-        List<String> emotionTags,
-        List<String> bodyTags,
+        List<EmotionTag> emotionTags,
+        List<BodyConditionTag> bodyTags,
         Integer waterMl,
         List<String> skin,
         LocalDate periodStart,
