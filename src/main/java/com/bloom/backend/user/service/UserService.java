@@ -1,6 +1,7 @@
 package com.bloom.backend.user.service;
 
 import com.bloom.backend.auth.repository.RefreshTokenRepository;
+import com.bloom.backend.care.repository.BodyCheckRepository;
 import com.bloom.backend.diary.repository.ActivityRepository;
 import com.bloom.backend.diary.repository.DiaryRepository;
 import com.bloom.backend.diary.repository.MealRepository;
@@ -27,16 +28,19 @@ public class UserService {
     private final MealRepository mealRepository;
     private final ActivityRepository activityRepository;
     private final DiaryRepository diaryRepository;
+    private final BodyCheckRepository bodyCheckRepository;
 
     public UserService(UserRepository userRepository, UserProfileRepository profileRepository,
                        RefreshTokenRepository refreshTokenRepository, MealRepository mealRepository,
-                       ActivityRepository activityRepository, DiaryRepository diaryRepository) {
+                       ActivityRepository activityRepository, DiaryRepository diaryRepository,
+                       BodyCheckRepository bodyCheckRepository) {
         this.userRepository = userRepository;
         this.profileRepository = profileRepository;
         this.refreshTokenRepository = refreshTokenRepository;
         this.mealRepository = mealRepository;
         this.activityRepository = activityRepository;
         this.diaryRepository = diaryRepository;
+        this.bodyCheckRepository = bodyCheckRepository;
     }
 
     @Transactional
@@ -72,6 +76,7 @@ public class UserService {
         activityRepository.deleteAllByDiaryUserId(userId);
         mealRepository.deleteAllByDiaryUserId(userId);
         diaryRepository.deleteAllByUserId(userId);
+        bodyCheckRepository.deleteAllByUserId(userId);
         refreshTokenRepository.deleteAllByUserId(userId);
         profileRepository.deleteByUserId(userId);
         userRepository.delete(user);

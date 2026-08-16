@@ -48,14 +48,14 @@ public class DiaryService {
         List<Meal> meals = mealRepository.findAllByDiaryIdOrderByIdAsc(diary.getId());
         List<Activity> activities = activityRepository.findAllByDiaryIdOrderByIdAsc(diary.getId());
         int totalCalories = meals.stream().mapToInt(Meal::getCalories).sum();
-        int totalActivity = activities.stream().mapToInt(Activity::getActivityAmount).sum();
+        int totalActivity = activities.stream().mapToInt(Activity::getBurnedKcal).sum();
 
         LocalDate previousDate = date.minusDays(1);
         var previousDiary = diaryRepository.findByUserIdAndDate(userId, previousDate);
         Integer calorieChange = previousDiary.map(value -> totalCalories
                 - mealRepository.findAllByDiaryIdOrderByIdAsc(value.getId()).stream().mapToInt(Meal::getCalories).sum()).orElse(null);
         Integer activityChange = previousDiary.map(value -> totalActivity
-                - activityRepository.findAllByDiaryIdOrderByIdAsc(value.getId()).stream().mapToInt(Activity::getActivityAmount).sum()).orElse(null);
+                - activityRepository.findAllByDiaryIdOrderByIdAsc(value.getId()).stream().mapToInt(Activity::getBurnedKcal).sum()).orElse(null);
         BigDecimal conditionChange = previousDiary
                 .filter(value -> diary.getConditionScore() != null && value.getConditionScore() != null)
                 .map(value -> diary.getConditionScore().subtract(value.getConditionScore()))
@@ -84,9 +84,10 @@ public class DiaryService {
             throw new BusinessException(ErrorCode.DATE_RANGE_INVALID);
         }
         Diary diary = getOrCreateDiary(userId, request.date());
-        String skinConditions = request.skin() == null ? null : String.join(",", request.skin());
-        diary.patchDaily(request.weightKg(), request.mood(), request.stress(), request.fatigue(),
-                request.waterMl(), skinConditions, request.periodStart(), request.periodEnd(), request.note());
+        String skinConditions = join(request.skin());
+        diary.patchDaily(request.weightKg(), request.emotionScore(), request.bodyScore(),
+                join(request.emotionTags()), join(request.bodyTags()), request.waterMl(), skinConditions,
+                request.periodStart(), request.periodEnd(), request.memo());
         return toDailyResponse(diary, get(userId, request.date()));
     }
 
@@ -98,9 +99,11 @@ public class DiaryService {
                 .map(diary -> {
                     List<Meal> meals = mealRepository.findAllByDiaryIdOrderByIdAsc(diary.getId());
                     List<Activity> activities = activityRepository.findAllByDiaryIdOrderByIdAsc(diary.getId());
-                    return new DiaryHistoryItem(diary.getDate(), diary.getWeightKg(), diary.getMood(),
-                            diary.getWaterMl(), meals.stream().mapToInt(Meal::getCalories).sum(),
-                            activities.stream().mapToInt(Activity::getActivityAmount).sum());
+                    return new DiaryHistoryItem(diary.getDate(), diary.getWeightKg(), diary.getEmotionScore(),
+                            diary.getBodyScore(), diary.getWaterMl(), meals.stream().mapToInt(Meal::getCalories).sum(),
+                            activities.stream().mapToInt(Activity::getSteps).sum(),
+                            activities.stream().mapToInt(Activity::getExerciseMinutes).sum(),
+                            activities.stream().mapToInt(Activity::getBurnedKcal).sum());
                 }).toList();
     }
 
@@ -118,14 +121,14 @@ public class DiaryService {
     public MealResponse createMeal(Long userId, LocalDate date, MealRequest request) {
         Diary diary = getOrCreateDiary(userId, date);
         return MealResponse.from(mealRepository.save(new Meal(diary, request.mealType(), request.foodName(),
-                request.calories(), request.carbs(), request.protein(), request.fat())));
+                request.kcal(), request.carbs(), request.protein(), request.fat())));
     }
 
     @Transactional
     public MealResponse updateMeal(Long userId, Long mealId, MealRequest request) {
         Meal meal = mealRepository.findByIdAndDiaryUserId(mealId, userId)
                 .orElseThrow(() -> new BusinessException(ErrorCode.MEAL_NOT_FOUND));
-        meal.update(request.mealType(), request.foodName(), request.calories(), request.carbs(), request.protein(), request.fat());
+        meal.update(request.mealType(), request.foodName(), request.kcal(), request.carbs(), request.protein(), request.fat());
         return MealResponse.from(meal);
     }
 
@@ -139,14 +142,15 @@ public class DiaryService {
     @Transactional
     public ActivityResponse createActivity(Long userId, LocalDate date, ActivityRequest request) {
         Diary diary = getOrCreateDiary(userId, date);
-        return ActivityResponse.from(activityRepository.save(new Activity(diary, request.activityAmount(), request.memo())));
+        return ActivityResponse.from(activityRepository.save(new Activity(diary, request.steps(),
+                request.exerciseMinutes(), request.burnedKcal(), request.memo())));
     }
 
     @Transactional
     public ActivityResponse updateActivity(Long userId, Long activityId, ActivityRequest request) {
         Activity activity = activityRepository.findByIdAndDiaryUserId(activityId, userId)
                 .orElseThrow(() -> new BusinessException(ErrorCode.ACTIVITY_NOT_FOUND));
-        activity.update(request.activityAmount(), request.memo());
+        activity.update(request.steps(), request.exerciseMinutes(), request.burnedKcal(), request.memo());
         return ActivityResponse.from(activity);
     }
 
@@ -173,13 +177,35 @@ public class DiaryService {
     }
 
     private DailyDiaryResponse toDailyResponse(Diary diary, DiaryResponse legacy) {
-        List<String> skin = diary.getSkinConditions() == null || diary.getSkinConditions().isBlank()
-                ? List.of() : List.of(diary.getSkinConditions().split(","));
-        return new DailyDiaryResponse(diary.getDate(), diary.getWeightKg(), diary.getMood(),
-                diary.getStress(), diary.getFatigue(), diary.getWaterMl(), skin,
+        List<Activity> activities = activityRepository.findAllByDiaryIdOrderByIdAsc(diary.getId());
+        var previousDiary = diaryRepository.findByUserIdAndDate(
+                diary.getDiaryUserId(), diary.getDate().minusDays(1));
+        List<Activity> previousActivities = previousDiary
+                .map(value -> activityRepository.findAllByDiaryIdOrderByIdAsc(value.getId())).orElse(List.of());
+        int totalSteps = activities.stream().mapToInt(Activity::getSteps).sum();
+        int totalExerciseMinutes = activities.stream().mapToInt(Activity::getExerciseMinutes).sum();
+        int totalBurnedKcal = activities.stream().mapToInt(Activity::getBurnedKcal).sum();
+        Integer stepsChange = previousDiary.isEmpty() ? null
+                : totalSteps - previousActivities.stream().mapToInt(Activity::getSteps).sum();
+        Integer exerciseMinutesChange = previousDiary.isEmpty() ? null
+                : totalExerciseMinutes - previousActivities.stream().mapToInt(Activity::getExerciseMinutes).sum();
+        Integer burnedKcalChange = previousDiary.isEmpty() ? null
+                : totalBurnedKcal - previousActivities.stream().mapToInt(Activity::getBurnedKcal).sum();
+        return new DailyDiaryResponse(diary.getDate(), diary.getWeightKg(), diary.getEmotionScore(),
+                diary.getBodyScore(), split(diary.getEmotionTags()), split(diary.getBodyTags()),
+                diary.getWaterMl(), split(diary.getSkinConditions()),
                 diary.getPeriodStart(), diary.getPeriodEnd(), diary.getMemo(),
                 legacy.totalCalories(), legacy.calorieChange(), legacy.recommendedCalories(),
-                legacy.remainingCalories(), legacy.totalActivity(), legacy.activityChange(),
+                legacy.remainingCalories(), totalSteps, stepsChange, totalExerciseMinutes,
+                exerciseMinutesChange, totalBurnedKcal, burnedKcalChange,
                 legacy.meals(), legacy.activities());
+    }
+
+    private String join(List<String> values) {
+        return values == null ? null : String.join(",", values);
+    }
+
+    private List<String> split(String values) {
+        return values == null || values.isBlank() ? List.of() : List.of(values.split(","));
     }
 }

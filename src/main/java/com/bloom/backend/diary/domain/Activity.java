@@ -21,26 +21,36 @@ public class Activity extends BaseTimeEntity {
     @JoinColumn(name = "diary_id", nullable = false)
     private Diary diary;
 
-    @Column(name = "activity_amount", nullable = false)
-    private int activityAmount;
+    @Column(nullable = false)
+    private int steps;
+
+    @Column(name = "exercise_minutes", nullable = false)
+    private int exerciseMinutes;
+
+    @Column(name = "burned_kcal", nullable = false)
+    private int burnedKcal;
 
     @Column(length = 200)
     private String memo;
 
     protected Activity() {}
 
-    public Activity(Diary diary, int activityAmount, String memo) {
+    public Activity(Diary diary, int steps, int exerciseMinutes, int burnedKcal, String memo) {
         this.diary = diary;
-        update(activityAmount, memo);
+        update(steps, exerciseMinutes, burnedKcal, memo);
     }
 
-    public void update(int activityAmount, String memo) {
-        this.activityAmount = activityAmount;
+    public void update(int steps, int exerciseMinutes, int burnedKcal, String memo) {
+        this.steps = steps;
+        this.exerciseMinutes = exerciseMinutes;
+        this.burnedKcal = burnedKcal;
         this.memo = memo;
     }
 
     public Long getId() { return id; }
     public Diary getDiary() { return diary; }
-    public int getActivityAmount() { return activityAmount; }
+    public int getSteps() { return steps; }
+    public int getExerciseMinutes() { return exerciseMinutes; }
+    public int getBurnedKcal() { return burnedKcal; }
     public String getMemo() { return memo; }
 }

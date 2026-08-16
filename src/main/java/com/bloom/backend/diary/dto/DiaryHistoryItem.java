@@ -6,8 +6,11 @@ import java.time.LocalDate;
 public record DiaryHistoryItem(
         LocalDate date,
         BigDecimal weightKg,
-        String mood,
+        Integer emotionScore,
+        Integer bodyScore,
         Integer waterMl,
         int totalCalories,
-        int totalActivity
+        int totalSteps,
+        int totalExerciseMinutes,
+        int totalBurnedKcal
 ) {}

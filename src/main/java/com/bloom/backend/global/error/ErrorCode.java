@@ -14,6 +14,7 @@ public enum ErrorCode {
     DIARY_NOT_FOUND(HttpStatus.NOT_FOUND, "해당 날짜의 기록이 없습니다."),
     MEAL_NOT_FOUND(HttpStatus.NOT_FOUND, "식단 기록을 찾을 수 없습니다."),
     ACTIVITY_NOT_FOUND(HttpStatus.NOT_FOUND, "활동 기록을 찾을 수 없습니다."),
+    BODY_CHECK_NOT_FOUND(HttpStatus.NOT_FOUND, "눈바디 기록을 찾을 수 없습니다."),
     RESOURCE_FORBIDDEN(HttpStatus.FORBIDDEN, "접근 권한이 없습니다."),
     INTERNAL_SERVER_ERROR(HttpStatus.INTERNAL_SERVER_ERROR, "일시적인 오류가 발생했습니다.");
 

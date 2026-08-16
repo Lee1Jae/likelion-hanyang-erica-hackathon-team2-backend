@@ -44,7 +44,7 @@ class DiaryControllerIntegrationTests {
                         .header("Authorization", "Bearer " + accessToken)
                         .contentType(MediaType.APPLICATION_JSON)
                         .content("""
-                                {"mealType":"LUNCH","foodName":"현미밥","calories":320,
+                                {"mealType":"LUNCH","foodName":"현미밥","kcal":320,
                                  "carbs":60,"protein":8,"fat":3}
                                 """))
                 .andExpect(status().isCreated());
@@ -53,7 +53,7 @@ class DiaryControllerIntegrationTests {
                         .header("Authorization", "Bearer " + accessToken)
                         .contentType(MediaType.APPLICATION_JSON)
                         .content("""
-                                {"activityAmount":8200,"memo":"산책"}
+                                {"steps":8200,"exerciseMinutes":30,"burnedKcal":180,"memo":"산책"}
                                 """))
                 .andExpect(status().isCreated());
 
@@ -62,12 +62,14 @@ class DiaryControllerIntegrationTests {
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.totalCalories").value(320))
                 .andExpect(jsonPath("$.remainingCalories").value(1680))
-                .andExpect(jsonPath("$.totalActivity").value(8200))
+                .andExpect(jsonPath("$.totalActivity").value(180))
                 .andExpect(jsonPath("$.carbs").value(60))
                 .andExpect(jsonPath("$.protein").value(8))
                 .andExpect(jsonPath("$.fat").value(3))
                 .andExpect(jsonPath("$.meals[0].foodName").value("현미밥"))
-                .andExpect(jsonPath("$.activities[0].activityAmount").value(8200));
+                .andExpect(jsonPath("$.activities[0].steps").value(8200))
+                .andExpect(jsonPath("$.activities[0].exerciseMinutes").value(30))
+                .andExpect(jsonPath("$.activities[0].burnedKcal").value(180));
     }
 
     @Test
@@ -78,20 +80,34 @@ class DiaryControllerIntegrationTests {
                         .header("Authorization", "Bearer " + accessToken)
                         .contentType(MediaType.APPLICATION_JSON)
                         .content("""
-                                {"date":"2026-08-15","weightKg":61.2,"mood":"GOOD","stress":3,
-                                 "fatigue":4,"waterMl":1800,"skin":["DRY","SENSITIVE"],
-                                 "periodStart":"2026-08-14","periodEnd":"2026-08-18","note":"회복 중"}
+                                {"date":"2026-08-15","weightKg":61.2,"emotionScore":5,"bodyScore":3,
+                                 "emotionTags":["HAPPY","STRESS"],"bodyTags":["BACK_PAIN"],
+                                 "waterMl":1800,"skin":["DRY","SENSITIVE"],
+                                 "periodStart":"2026-08-14","periodEnd":"2026-08-18","memo":"회복 중"}
                                 """))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.weightKg").value(61.2))
                 .andExpect(jsonPath("$.waterMl").value(1800))
                 .andExpect(jsonPath("$.skin[1]").value("SENSITIVE"));
 
+        mockMvc.perform(post("/api/v1/diaries/2026-08-15/activities")
+                        .header("Authorization", "Bearer " + accessToken)
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("""
+                                {"steps":6500,"exerciseMinutes":25,"burnedKcal":160,"memo":"걷기"}
+                                """))
+                .andExpect(status().isCreated());
+
         mockMvc.perform(get("/api/v1/diary/daily").param("date", "2026-08-15")
                         .header("Authorization", "Bearer " + accessToken))
                 .andExpect(status().isOk())
-                .andExpect(jsonPath("$.mood").value("GOOD"))
-                .andExpect(jsonPath("$.note").value("회복 중"));
+                .andExpect(jsonPath("$.emotionScore").value(5))
+                .andExpect(jsonPath("$.bodyScore").value(3))
+                .andExpect(jsonPath("$.emotionTags[1]").value("STRESS"))
+                .andExpect(jsonPath("$.memo").value("회복 중"))
+                .andExpect(jsonPath("$.totalSteps").value(6500))
+                .andExpect(jsonPath("$.totalExerciseMinutes").value(25))
+                .andExpect(jsonPath("$.totalBurnedKcal").value(160));
 
         mockMvc.perform(get("/api/v1/diary/history")
                         .param("from", "2026-08-01").param("to", "2026-08-31")

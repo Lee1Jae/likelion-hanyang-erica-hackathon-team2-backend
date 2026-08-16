@@ -48,12 +48,17 @@ public class Diary extends BaseTimeEntity {
     @Column(name = "menstrual_status")
     private Boolean menstrualStatus;
 
-    @Column(length = 30)
-    private String mood;
+    @Column(name = "emotion_score")
+    private Integer emotionScore;
 
-    private Integer stress;
+    @Column(name = "body_score")
+    private Integer bodyScore;
 
-    private Integer fatigue;
+    @Column(name = "emotion_tags", length = 500)
+    private String emotionTags;
+
+    @Column(name = "body_tags", length = 500)
+    private String bodyTags;
 
     @Column(name = "skin_conditions", length = 500)
     private String skinConditions;
@@ -81,21 +86,23 @@ public class Diary extends BaseTimeEntity {
         this.menstrualStatus = menstrualStatus;
     }
 
-    public void patchDaily(BigDecimal weightKg, String mood, Integer stress, Integer fatigue,
-                           Integer waterMl, String skinConditions, LocalDate periodStart,
-                           LocalDate periodEnd, String note) {
+    public void patchDaily(BigDecimal weightKg, Integer emotionScore, Integer bodyScore,
+                           String emotionTags, String bodyTags, Integer waterMl,
+                           String skinConditions, LocalDate periodStart, LocalDate periodEnd, String memo) {
         if (weightKg != null) this.weightKg = weightKg;
-        if (mood != null) this.mood = mood;
-        if (stress != null) this.stress = stress;
-        if (fatigue != null) this.fatigue = fatigue;
+        if (emotionScore != null) this.emotionScore = emotionScore;
+        if (bodyScore != null) this.bodyScore = bodyScore;
+        if (emotionTags != null) this.emotionTags = emotionTags;
+        if (bodyTags != null) this.bodyTags = bodyTags;
         if (waterMl != null) this.waterMl = waterMl;
         if (skinConditions != null) this.skinConditions = skinConditions;
         if (periodStart != null) this.periodStart = periodStart;
         if (periodEnd != null) this.periodEnd = periodEnd;
-        if (note != null) this.memo = note;
+        if (memo != null) this.memo = memo;
     }
 
     public Long getId() { return id; }
+    public Long getDiaryUserId() { return user.getId(); }
     public LocalDate getDate() { return date; }
     public String getMemo() { return memo; }
     public BigDecimal getConditionScore() { return conditionScore; }
@@ -103,9 +110,10 @@ public class Diary extends BaseTimeEntity {
     public Integer getWaterMl() { return waterMl; }
     public String getSkinCondition() { return skinCondition; }
     public Boolean getMenstrualStatus() { return menstrualStatus; }
-    public String getMood() { return mood; }
-    public Integer getStress() { return stress; }
-    public Integer getFatigue() { return fatigue; }
+    public Integer getEmotionScore() { return emotionScore; }
+    public Integer getBodyScore() { return bodyScore; }
+    public String getEmotionTags() { return emotionTags; }
+    public String getBodyTags() { return bodyTags; }
     public String getSkinConditions() { return skinConditions; }
     public LocalDate getPeriodStart() { return periodStart; }
     public LocalDate getPeriodEnd() { return periodEnd; }

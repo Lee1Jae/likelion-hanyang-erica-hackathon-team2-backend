@@ -14,12 +14,13 @@ import java.util.List;
 public record DailyDiaryPatchRequest(
         @NotNull LocalDate date,
         @DecimalMin("20.0") @DecimalMax("300.0") @Digits(integer = 3, fraction = 1) BigDecimal weightKg,
-        @Size(max = 30) String mood,
-        @Min(0) @Max(10) Integer stress,
-        @Min(0) @Max(10) Integer fatigue,
+        @Min(0) @Max(5) Integer emotionScore,
+        @Min(0) @Max(5) Integer bodyScore,
+        @Size(max = 10) List<@Size(max = 30) String> emotionTags,
+        @Size(max = 10) List<@Size(max = 30) String> bodyTags,
         @Min(0) @Max(10000) Integer waterMl,
         @Size(max = 10) List<@Size(max = 30) String> skin,
         LocalDate periodStart,
         LocalDate periodEnd,
-        @Size(max = 1000) String note
+        @Size(max = 1000) String memo
 ) {}
