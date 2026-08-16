@@ -8,6 +8,7 @@ import org.springframework.data.jpa.repository.JpaRepository;
 
 public interface ActivityRepository extends JpaRepository<Activity, Long> {
     List<Activity> findAllByDiaryIdOrderByIdAsc(Long diaryId);
+    List<Activity> findAllByDiaryIdInOrderByDiaryIdAscIdAsc(List<Long> diaryIds);
     Optional<Activity> findByIdAndDiaryUserId(Long id, Long userId);
     List<Activity> findAllByDiaryUserIdAndDiaryDate(Long userId, LocalDate date);
     void deleteAllByDiaryUserId(Long userId);

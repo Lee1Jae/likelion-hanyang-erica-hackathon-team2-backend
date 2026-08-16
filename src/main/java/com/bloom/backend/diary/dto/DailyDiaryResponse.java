@@ -23,6 +23,7 @@ public record DailyDiaryResponse(
         Integer calorieChange,
         int recommendedCalories,
         int remainingCalories,
+        boolean nutritionIncomplete,
         int totalSteps,
         Integer stepsChange,
         int totalExerciseMinutes,

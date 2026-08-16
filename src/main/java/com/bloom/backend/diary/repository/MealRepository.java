@@ -8,6 +8,7 @@ import org.springframework.data.jpa.repository.JpaRepository;
 
 public interface MealRepository extends JpaRepository<Meal, Long> {
     List<Meal> findAllByDiaryIdOrderByIdAsc(Long diaryId);
+    List<Meal> findAllByDiaryIdInOrderByDiaryIdAscIdAsc(List<Long> diaryIds);
     Optional<Meal> findByIdAndDiaryUserId(Long id, Long userId);
     List<Meal> findAllByDiaryUserIdAndDiaryDate(Long userId, LocalDate date);
     void deleteAllByDiaryUserId(Long userId);

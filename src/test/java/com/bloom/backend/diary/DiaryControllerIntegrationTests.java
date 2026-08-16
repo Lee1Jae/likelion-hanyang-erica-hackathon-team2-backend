@@ -149,6 +149,11 @@ class DiaryControllerIntegrationTests {
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.totalCalories").value(0))
                 .andExpect(jsonPath("$.nutritionIncomplete").value(true));
+
+        mockMvc.perform(get("/api/v1/diary/daily").param("date", "2026-08-16")
+                        .header("Authorization", "Bearer " + accessToken))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.nutritionIncomplete").value(true));
     }
 
     private String signupAndLogin() throws Exception {
