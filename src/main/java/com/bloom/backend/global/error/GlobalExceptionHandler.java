@@ -7,7 +7,9 @@ import java.util.List;
 import java.util.UUID;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.http.converter.HttpMessageNotReadableException;
 import org.springframework.validation.FieldError;
+import org.springframework.web.method.annotation.MethodArgumentTypeMismatchException;
 import org.springframework.web.bind.MethodArgumentNotValidException;
 import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.RestControllerAdvice;
@@ -30,6 +32,25 @@ public class GlobalExceptionHandler {
                 .map(this::toFieldError)
                 .toList();
         return ResponseEntity.badRequest().body(response(ErrorCode.COMMON_INVALID_INPUT, request, fields));
+    }
+
+    @ExceptionHandler(MethodArgumentTypeMismatchException.class)
+    public ResponseEntity<ErrorResponse> handleTypeMismatch(
+            MethodArgumentTypeMismatchException exception,
+            HttpServletRequest request
+    ) {
+        ErrorCode code = "date".equals(exception.getName())
+                ? ErrorCode.DATE_INVALID
+                : ErrorCode.COMMON_INVALID_INPUT;
+        return ResponseEntity.badRequest().body(response(code, request, List.of()));
+    }
+
+    @ExceptionHandler(HttpMessageNotReadableException.class)
+    public ResponseEntity<ErrorResponse> handleUnreadableJson(
+            HttpMessageNotReadableException exception,
+            HttpServletRequest request
+    ) {
+        return ResponseEntity.badRequest().body(response(ErrorCode.COMMON_INVALID_INPUT, request, List.of()));
     }
 
     @ExceptionHandler(Exception.class)
