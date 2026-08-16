@@ -122,10 +122,89 @@ POST /api/v1/care/body-checks/{bodyCheckId}/analysis
 ### AI 채팅
 
 ```http
-POST /api/v1/ai/chat/sessions
-POST /api/v1/ai/chat/sessions/{sessionId}/messages
-GET  /api/v1/ai/chat/sessions/{sessionId}/messages
+POST /api/v1/ai/chat
+GET  /api/v1/ai/conversations
+GET  /api/v1/ai/conversations/{conversationId}
 ```
+
+모든 요청은 `Authorization: Bearer {accessToken}` 헤더가 필요합니다. 프론트는 프로필·식단·활동·컨디션 데이터를 매 요청에 싣지 않습니다. 백엔드가 인증 사용자 기준으로 필요한 최신 데이터를 조회하고, 허용된 최소 정보만 AI에 전달합니다.
+
+#### 메시지 전송
+
+새 대화는 `conversationId`를 생략합니다.
+
+```json
+{
+  "message": "오늘 운동 뭐 하면 좋을까?"
+}
+```
+
+기존 대화를 이어갈 때만 `conversationId`를 전달합니다.
+
+```json
+{
+  "conversationId": 12,
+  "message": "그럼 집에서 할 수 있는 운동으로 알려줘"
+}
+```
+
+| 필드 | 타입 | 필수 | 설명 |
+| --- | --- | --- | --- |
+| `conversationId` | `Long` | X | 기존 대화 ID. 새 대화는 생략 |
+| `message` | `String` | O | 공백 제외 1~2,000자의 사용자 메시지 |
+
+첫 메시지라면 대화를 자동 생성하고 사용자 메시지와 AI 답변을 모두 저장합니다. 기존 대화 ID는 반드시 현재 로그인 사용자의 것이어야 하며, 없거나 다른 사용자의 대화면 `404 Not Found`를 반환합니다.
+
+```json
+{
+  "conversationId": 12,
+  "answer": "오늘은 가벼운 걷기와 스트레칭을 추천해요.",
+  "createdAt": "2026-08-16T11:10:00Z"
+}
+```
+
+`createdAt`은 ISO-8601 UTC 시각입니다. AI 제공자 장애나 제한시간 초과 시 사용자 메시지는 실패 상태로 남기고 `503 Service Unavailable`을 반환하며, 임의의 가짜 답변은 저장하지 않습니다.
+
+#### 대화 목록
+
+`GET /api/v1/ai/conversations`
+
+```json
+[
+  {
+    "conversationId": 12,
+    "title": "오늘 운동 추천",
+    "lastMessageAt": "2026-08-16T11:10:00Z"
+  }
+]
+```
+
+최신 메시지가 있는 대화부터 반환합니다. MVP에서는 대화가 많지 않다는 전제로 전체 목록을 반환하며, 운영 전 페이지네이션을 추가합니다.
+
+#### 대화 상세
+
+`GET /api/v1/ai/conversations/{conversationId}`
+
+```json
+{
+  "conversationId": 12,
+  "title": "오늘 운동 추천",
+  "messages": [
+    {
+      "role": "USER",
+      "content": "오늘 운동 뭐 하면 좋을까?",
+      "createdAt": "2026-08-16T11:09:55Z"
+    },
+    {
+      "role": "ASSISTANT",
+      "content": "오늘은 가벼운 걷기와 스트레칭을 추천해요.",
+      "createdAt": "2026-08-16T11:10:00Z"
+    }
+  ]
+}
+```
+
+메시지는 오래된 순서로 반환하며 `role`은 `USER`, `ASSISTANT` 중 하나입니다.
 
 ## 2. 백엔드 ↔ AI 서버 내부 API
 
@@ -167,6 +246,8 @@ AI가 음식을 하나도 인식하지 못하면 상태를 `FAILED`로 저장하
 - 동기 응답과 비동기 polling 중 선택
 - 챗봇 대화 보관 기간과 개인정보 제거 정책
 - 모델 제공자와 비용 제한
+
+채팅 메시지 전송은 MVP에서 동기 응답으로 시작합니다. 백엔드가 AI 호출 제한시간을 관리하며, 운영 단계에서 응답 지연이 문제가 되면 스트리밍 또는 비동기 방식으로 확장합니다.
 
 ## 5. MVP 운영 정책
 

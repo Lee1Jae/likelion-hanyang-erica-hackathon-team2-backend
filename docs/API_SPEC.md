@@ -212,7 +212,36 @@ DELETE /api/v1/care/body-checks/{bodyCheckId}
 
 AI 예상 이미지는 후순위입니다. 응답의 `expectedImageUrl`은 구현 전까지 null이고 `analysisStatus`는 `NOT_REQUESTED`입니다.
 
-## 5. 아직 확정하지 않은 계약
+## 5. AI 채팅 계약
+
+```http
+POST /api/v1/ai/chat
+GET  /api/v1/ai/conversations
+GET  /api/v1/ai/conversations/{conversationId}
+```
+
+모든 요청에 Bearer Access Token이 필요합니다. 새 대화는 `conversationId` 없이 메시지를 보내고, 기존 대화는 `conversationId`를 함께 보냅니다.
+
+```json
+{
+  "conversationId": 12,
+  "message": "그럼 집에서 할 수 있는 운동으로 알려줘"
+}
+```
+
+`conversationId`는 선택이며 `message`는 공백 제외 1~2,000자의 필수 문자열입니다. 첫 메시지 전송 시 대화를 자동 생성하고 사용자 메시지와 AI 답변을 서버에 저장합니다. 백엔드는 Access Token으로 사용자를 확인하고 프로필·최근 식단·활동·컨디션 중 필요한 최소 데이터만 조회하므로 프론트가 개인화 데이터를 반복 전송하지 않습니다.
+
+```json
+{
+  "conversationId": 12,
+  "answer": "오늘은 가벼운 걷기와 스트레칭을 추천해요.",
+  "createdAt": "2026-08-16T11:10:00Z"
+}
+```
+
+`createdAt`은 ISO-8601 UTC 시각입니다. 대화 목록은 최신 대화 순, 대화 상세의 메시지는 오래된 순으로 반환합니다. 다른 사용자의 대화 또는 존재하지 않는 대화는 정보 노출 방지를 위해 동일하게 `404 Not Found`로 처리합니다. 구체적인 목록·상세 응답과 실패 정책은 `AI_API_DRAFT.md`를 따릅니다. 현재 API 계약만 확정됐으며 AI 호출과 대화 저장 코드는 구현 전입니다.
+
+## 6. 아직 확정하지 않은 계약
 
 - AI 식단 분석 모델·타임아웃·재시도와 최소 개인화 정보
 - 눈바디 파일 업로드 저장소와 AI 예상 이미지 생성
