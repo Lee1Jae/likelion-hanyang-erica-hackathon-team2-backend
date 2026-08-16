@@ -25,7 +25,7 @@ class BodyCheckControllerIntegrationTests {
 
     @Test
     void createsListsUpdatesAndDeletesBodyCheck() throws Exception {
-        String token = signupAndLogin();
+        String token = signupAndLogin("body-crud@example.com");
         String created = mockMvc.perform(post("/api/v1/care/body-checks")
                         .header("Authorization", "Bearer " + token)
                         .contentType(MediaType.APPLICATION_JSON)
@@ -54,17 +54,45 @@ class BodyCheckControllerIntegrationTests {
                 .andExpect(status().isNoContent());
     }
 
-    private String signupAndLogin() throws Exception {
-        mockMvc.perform(post("/api/v1/auth/signup").contentType(MediaType.APPLICATION_JSON)
+    @Test
+    void validatesBodyCheckImageUrlAndRejectsEmptyPatch() throws Exception {
+        String token = signupAndLogin("body-validation@example.com");
+
+        mockMvc.perform(post("/api/v1/care/body-checks")
+                        .header("Authorization", "Bearer " + token)
+                        .contentType(MediaType.APPLICATION_JSON)
                         .content("""
-                                {"email":"body@example.com","password":"Password1!","nickname":"눈바디"}
+                                {"recordedDate":"2026-08-16","originalImageUrl":"not-a-url"}
                                 """))
+                .andExpect(status().isBadRequest());
+
+        String created = mockMvc.perform(post("/api/v1/care/body-checks")
+                        .header("Authorization", "Bearer " + token)
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("""
+                                {"recordedDate":"2026-08-16","originalImageUrl":"https://cdn.example.com/body/original.jpg"}
+                                """))
+                .andExpect(status().isCreated())
+                .andReturn().getResponse().getContentAsString();
+        long id = objectMapper.readTree(created).get("bodyCheckId").asLong();
+
+        mockMvc.perform(patch("/api/v1/care/body-checks/{id}", id)
+                        .header("Authorization", "Bearer " + token)
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("{}"))
+                .andExpect(status().isBadRequest());
+    }
+
+    private String signupAndLogin(String email) throws Exception {
+        mockMvc.perform(post("/api/v1/auth/signup").contentType(MediaType.APPLICATION_JSON)
+                        .content(objectMapper.writeValueAsString(new SignupPayload(email, "Password1!", "눈바디"))))
                 .andExpect(status().isCreated());
         String body = mockMvc.perform(post("/api/v1/auth/login").contentType(MediaType.APPLICATION_JSON)
-                        .content("""
-                                {"email":"body@example.com","password":"Password1!"}
-                                """))
+                        .content(objectMapper.writeValueAsString(new LoginPayload(email, "Password1!"))))
                 .andReturn().getResponse().getContentAsString();
         return objectMapper.readTree(body).get("accessToken").asText();
     }
+
+    private record SignupPayload(String email, String password, String nickname) {}
+    private record LoginPayload(String email, String password) {}
 }

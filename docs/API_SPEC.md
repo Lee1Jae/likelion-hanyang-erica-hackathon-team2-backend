@@ -160,6 +160,8 @@ DELETE /api/v1/meals/{mealId}
 
 ## 4. 눈바디 사진 기록
 
+눈바디 API는 이미지 파일 자체가 아니라 이미지 저장소에서 발급받은 URL을 저장합니다. 모든 API는 `Authorization: Bearer {accessToken}` 헤더가 필요합니다.
+
 ```http
 POST   /api/v1/care/body-checks
 GET    /api/v1/care/body-checks
@@ -171,9 +173,42 @@ DELETE /api/v1/care/body-checks/{bodyCheckId}
 ```json
 {
   "recordedDate": "2026-08-16",
-  "originalImageUrl": "https://cdn.example.com/body/original.jpg"
+  "originalImageUrl": "https://cdn.example.com/body.jpg"
 }
 ```
+
+### 생성 요청
+
+`POST /api/v1/care/body-checks`
+
+| 필드 | 타입 | 필수 | 설명 |
+| --- | --- | --- | --- |
+| `recordedDate` | `string(date)` | O | 사진 촬영 날짜, `YYYY-MM-DD` |
+| `originalImageUrl` | `string` | O | 업로드가 끝난 원본 이미지의 HTTP(S) URL, 최대 1,000자 |
+
+성공 시 `201 Created`와 생성된 `BodyCheckResponse`를 반환합니다. 프론트는 먼저 협의된 이미지 저장소에 파일을 업로드하고, 받은 URL을 이 API로 전달합니다.
+
+### 수정 요청
+
+`PATCH /api/v1/care/body-checks/{bodyCheckId}`
+
+```json
+{
+  "recordedDate": "2026-08-15",
+  "originalImageUrl": "https://cdn.example.com/body-new.jpg"
+}
+```
+
+| 필드 | 타입 | 필수 | 설명 |
+| --- | --- | --- | --- |
+| `recordedDate` | `string(date)` | X | 변경할 촬영 날짜 |
+| `originalImageUrl` | `string` | X | 변경할 HTTP(S) 이미지 URL, 최대 1,000자 |
+
+변경할 필드만 전송합니다. 단, 두 필드가 모두 빠진 빈 요청 `{}`은 `400 Bad Request`입니다. 성공 시 `200 OK`와 수정된 `BodyCheckResponse`를 반환합니다.
+
+### 이미지 업로드 책임
+
+현재 백엔드는 이미지 URL만 저장하며 파일 업로드 API는 제공하지 않습니다. 이미지 저장소, 업로드 주체, URL 발급 방식, 파일 크기·형식·보관 정책은 프론트·백엔드가 별도로 확정해야 합니다. 이미지 저장소가 정해진 뒤에는 허용 호스트 검증 또는 백엔드 발급 업로드 URL 방식으로 보강합니다.
 
 AI 예상 이미지는 후순위입니다. 응답의 `expectedImageUrl`은 구현 전까지 null이고 `analysisStatus`는 `NOT_REQUESTED`입니다.
 

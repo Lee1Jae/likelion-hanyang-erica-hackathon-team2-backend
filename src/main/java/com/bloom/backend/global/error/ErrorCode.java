@@ -15,6 +15,7 @@ public enum ErrorCode {
     MEAL_NOT_FOUND(HttpStatus.NOT_FOUND, "식단 기록을 찾을 수 없습니다."),
     ACTIVITY_NOT_FOUND(HttpStatus.NOT_FOUND, "활동 기록을 찾을 수 없습니다."),
     BODY_CHECK_NOT_FOUND(HttpStatus.NOT_FOUND, "눈바디 기록을 찾을 수 없습니다."),
+    BODY_CHECK_PATCH_EMPTY(HttpStatus.BAD_REQUEST, "수정할 눈바디 정보를 한 개 이상 입력해 주세요."),
     RESOURCE_FORBIDDEN(HttpStatus.FORBIDDEN, "접근 권한이 없습니다."),
     INTERNAL_SERVER_ERROR(HttpStatus.INTERNAL_SERVER_ERROR, "일시적인 오류가 발생했습니다.");
 

@@ -43,6 +43,9 @@ public class BodyCheckService {
 
     @Transactional
     public BodyCheckResponse patch(Long userId, Long bodyCheckId, BodyCheckPatchRequest request) {
+        if (!request.hasChanges()) {
+            throw new BusinessException(ErrorCode.BODY_CHECK_PATCH_EMPTY);
+        }
         BodyCheck bodyCheck = find(userId, bodyCheckId);
         bodyCheck.update(request.recordedDate(), request.originalImageUrl());
         return BodyCheckResponse.from(bodyCheck);
