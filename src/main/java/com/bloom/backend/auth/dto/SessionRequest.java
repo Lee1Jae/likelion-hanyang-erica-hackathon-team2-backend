@@ -1,0 +1,9 @@
+package com.bloom.backend.auth.dto;
+
+import jakarta.validation.constraints.NotBlank;
+import jakarta.validation.constraints.NotNull;
+
+public record SessionRequest(
+        @NotNull SessionAction action,
+        @NotBlank String refreshToken
+) {}

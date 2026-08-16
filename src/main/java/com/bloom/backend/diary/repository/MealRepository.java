@@ -10,4 +10,5 @@ public interface MealRepository extends JpaRepository<Meal, Long> {
     List<Meal> findAllByDiaryIdOrderByIdAsc(Long diaryId);
     Optional<Meal> findByIdAndDiaryUserId(Long id, Long userId);
     List<Meal> findAllByDiaryUserIdAndDiaryDate(Long userId, LocalDate date);
+    void deleteAllByDiaryUserId(Long userId);
 }

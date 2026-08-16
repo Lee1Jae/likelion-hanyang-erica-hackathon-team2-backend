@@ -2,6 +2,9 @@ package com.bloom.backend.diary.controller;
 
 import com.bloom.backend.diary.dto.ActivityRequest;
 import com.bloom.backend.diary.dto.ActivityResponse;
+import com.bloom.backend.diary.dto.DailyDiaryPatchRequest;
+import com.bloom.backend.diary.dto.DailyDiaryResponse;
+import com.bloom.backend.diary.dto.DiaryHistoryItem;
 import com.bloom.backend.diary.dto.DiaryResponse;
 import com.bloom.backend.diary.dto.DiarySaveRequest;
 import com.bloom.backend.diary.dto.MealRequest;
@@ -9,6 +12,8 @@ import com.bloom.backend.diary.dto.MealResponse;
 import com.bloom.backend.diary.service.DiaryService;
 import jakarta.validation.Valid;
 import java.time.LocalDate;
+import java.time.ZoneId;
+import java.util.List;
 import org.springframework.format.annotation.DateTimeFormat;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
@@ -21,6 +26,7 @@ import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.PutMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 
 @RestController
@@ -30,6 +36,25 @@ public class DiaryController {
 
     public DiaryController(DiaryService diaryService) {
         this.diaryService = diaryService;
+    }
+
+    @GetMapping("/diary/daily")
+    public DailyDiaryResponse getDaily(Authentication auth,
+            @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate date) {
+        LocalDate targetDate = date == null ? LocalDate.now(ZoneId.of("Asia/Seoul")) : date;
+        return diaryService.getDaily(userId(auth), targetDate);
+    }
+
+    @PatchMapping("/diary/daily")
+    public DailyDiaryResponse patchDaily(Authentication auth, @Valid @RequestBody DailyDiaryPatchRequest request) {
+        return diaryService.patchDaily(userId(auth), request);
+    }
+
+    @GetMapping("/diary/history")
+    public List<DiaryHistoryItem> getHistory(Authentication auth,
+            @RequestParam @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate from,
+            @RequestParam @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate to) {
+        return diaryService.getHistory(userId(auth), from, to);
     }
 
     @GetMapping("/diaries/{date}")

@@ -59,4 +59,38 @@ public class UserProfile extends BaseTimeEntity {
         this.user = user;
         this.onboardingCompleted = false;
     }
+
+    public void completeOnboarding(LocalDate birthDate, LocalDate deliveryDate, BigDecimal heightCm,
+                                   BigDecimal weightKg, String beautyGoals, String healthIssues,
+                                   LocalDate lastPeriodDate, Integer cycleLength) {
+        this.birthDate = birthDate;
+        this.deliveryDate = deliveryDate;
+        this.heightCm = heightCm;
+        this.weightKg = weightKg;
+        this.beautyGoals = beautyGoals;
+        this.healthIssues = healthIssues;
+        this.lastPeriodDate = lastPeriodDate;
+        this.cycleLength = cycleLength;
+        this.onboardingCompleted = true;
+    }
+
+    public void update(BigDecimal heightCm, BigDecimal weightKg, String beautyGoals, String healthIssues,
+                       LocalDate lastPeriodDate, Integer cycleLength) {
+        if (heightCm != null) this.heightCm = heightCm;
+        if (weightKg != null) this.weightKg = weightKg;
+        if (beautyGoals != null) this.beautyGoals = beautyGoals;
+        if (healthIssues != null) this.healthIssues = healthIssues;
+        if (lastPeriodDate != null) this.lastPeriodDate = lastPeriodDate;
+        if (cycleLength != null) this.cycleLength = cycleLength;
+    }
+
+    public LocalDate getBirthDate() { return birthDate; }
+    public LocalDate getDeliveryDate() { return deliveryDate; }
+    public BigDecimal getHeightCm() { return heightCm; }
+    public BigDecimal getWeightKg() { return weightKg; }
+    public LocalDate getLastPeriodDate() { return lastPeriodDate; }
+    public Integer getCycleLength() { return cycleLength; }
+    public String getBeautyGoals() { return beautyGoals; }
+    public String getHealthIssues() { return healthIssues; }
+    public boolean isOnboardingCompleted() { return onboardingCompleted; }
 }

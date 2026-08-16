@@ -1,6 +1,7 @@
 package com.bloom.backend.diary;
 
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.patch;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.put;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
@@ -14,6 +15,7 @@ import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.http.MediaType;
 import org.springframework.test.annotation.DirtiesContext;
 import org.springframework.test.web.servlet.MockMvc;
+import java.util.UUID;
 
 @SpringBootTest
 @AutoConfigureMockMvc
@@ -68,19 +70,51 @@ class DiaryControllerIntegrationTests {
                 .andExpect(jsonPath("$.activities[0].activityAmount").value(8200));
     }
 
+    @Test
+    void agreedDailyContractSupportsPatchGetAndHistory() throws Exception {
+        String accessToken = signupAndLogin();
+
+        mockMvc.perform(patch("/api/v1/diary/daily")
+                        .header("Authorization", "Bearer " + accessToken)
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("""
+                                {"date":"2026-08-15","weightKg":61.2,"mood":"GOOD","stress":3,
+                                 "fatigue":4,"waterMl":1800,"skin":["DRY","SENSITIVE"],
+                                 "periodStart":"2026-08-14","periodEnd":"2026-08-18","note":"회복 중"}
+                                """))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.weightKg").value(61.2))
+                .andExpect(jsonPath("$.waterMl").value(1800))
+                .andExpect(jsonPath("$.skin[1]").value("SENSITIVE"));
+
+        mockMvc.perform(get("/api/v1/diary/daily").param("date", "2026-08-15")
+                        .header("Authorization", "Bearer " + accessToken))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.mood").value("GOOD"))
+                .andExpect(jsonPath("$.note").value("회복 중"));
+
+        mockMvc.perform(get("/api/v1/diary/history")
+                        .param("from", "2026-08-01").param("to", "2026-08-31")
+                        .header("Authorization", "Bearer " + accessToken))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$[0].date").value("2026-08-15"))
+                .andExpect(jsonPath("$[0].weightKg").value(61.2));
+    }
+
     private String signupAndLogin() throws Exception {
+        String email = "diary-" + UUID.randomUUID() + "@example.com";
         mockMvc.perform(post("/api/v1/auth/signup")
                         .contentType(MediaType.APPLICATION_JSON)
                         .content("""
-                                {"email":"diary@example.com","password":"Password1!","nickname":"테스터"}
-                                """))
+                                {"email":"%s","password":"Password1!","nickname":"테스터"}
+                                """.formatted(email)))
                 .andExpect(status().isCreated());
 
         String body = mockMvc.perform(post("/api/v1/auth/login")
                         .contentType(MediaType.APPLICATION_JSON)
                         .content("""
-                                {"email":"diary@example.com","password":"Password1!"}
-                                """))
+                                {"email":"%s","password":"Password1!"}
+                                """.formatted(email)))
                 .andExpect(status().isOk())
                 .andReturn().getResponse().getContentAsString();
         return objectMapper.readTree(body).get("accessToken").asText();

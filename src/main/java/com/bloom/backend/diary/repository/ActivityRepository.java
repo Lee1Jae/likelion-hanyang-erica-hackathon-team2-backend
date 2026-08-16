@@ -10,4 +10,5 @@ public interface ActivityRepository extends JpaRepository<Activity, Long> {
     List<Activity> findAllByDiaryIdOrderByIdAsc(Long diaryId);
     Optional<Activity> findByIdAndDiaryUserId(Long id, Long userId);
     List<Activity> findAllByDiaryUserIdAndDiaryDate(Long userId, LocalDate date);
+    void deleteAllByDiaryUserId(Long userId);
 }

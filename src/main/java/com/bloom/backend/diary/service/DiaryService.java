@@ -5,7 +5,10 @@ import com.bloom.backend.diary.domain.Diary;
 import com.bloom.backend.diary.domain.Meal;
 import com.bloom.backend.diary.dto.ActivityRequest;
 import com.bloom.backend.diary.dto.ActivityResponse;
+import com.bloom.backend.diary.dto.DailyDiaryPatchRequest;
+import com.bloom.backend.diary.dto.DailyDiaryResponse;
 import com.bloom.backend.diary.dto.DiaryResponse;
+import com.bloom.backend.diary.dto.DiaryHistoryItem;
 import com.bloom.backend.diary.dto.DiarySaveRequest;
 import com.bloom.backend.diary.dto.MealRequest;
 import com.bloom.backend.diary.dto.MealResponse;
@@ -67,6 +70,38 @@ public class DiaryService {
                 meals.stream().mapToInt(Meal::getFat).sum(),
                 meals.stream().map(MealResponse::from).toList(),
                 activities.stream().map(ActivityResponse::from).toList());
+    }
+
+    public DailyDiaryResponse getDaily(Long userId, LocalDate date) {
+        Diary diary = findDiary(userId, date);
+        return toDailyResponse(diary, get(userId, date));
+    }
+
+    @Transactional
+    public DailyDiaryResponse patchDaily(Long userId, DailyDiaryPatchRequest request) {
+        if (request.periodStart() != null && request.periodEnd() != null
+                && request.periodStart().isAfter(request.periodEnd())) {
+            throw new BusinessException(ErrorCode.DATE_RANGE_INVALID);
+        }
+        Diary diary = getOrCreateDiary(userId, request.date());
+        String skinConditions = request.skin() == null ? null : String.join(",", request.skin());
+        diary.patchDaily(request.weightKg(), request.mood(), request.stress(), request.fatigue(),
+                request.waterMl(), skinConditions, request.periodStart(), request.periodEnd(), request.note());
+        return toDailyResponse(diary, get(userId, request.date()));
+    }
+
+    public List<DiaryHistoryItem> getHistory(Long userId, LocalDate from, LocalDate to) {
+        if (from.isAfter(to)) {
+            throw new BusinessException(ErrorCode.DATE_RANGE_INVALID);
+        }
+        return diaryRepository.findAllByUserIdAndDateBetweenOrderByDateAsc(userId, from, to).stream()
+                .map(diary -> {
+                    List<Meal> meals = mealRepository.findAllByDiaryIdOrderByIdAsc(diary.getId());
+                    List<Activity> activities = activityRepository.findAllByDiaryIdOrderByIdAsc(diary.getId());
+                    return new DiaryHistoryItem(diary.getDate(), diary.getWeightKg(), diary.getMood(),
+                            diary.getWaterMl(), meals.stream().mapToInt(Meal::getCalories).sum(),
+                            activities.stream().mapToInt(Activity::getActivityAmount).sum());
+                }).toList();
     }
 
     @Transactional
@@ -135,5 +170,16 @@ public class DiaryService {
     private User findUser(Long userId) {
         return userRepository.findById(userId)
                 .orElseThrow(() -> new BusinessException(ErrorCode.USER_NOT_FOUND));
+    }
+
+    private DailyDiaryResponse toDailyResponse(Diary diary, DiaryResponse legacy) {
+        List<String> skin = diary.getSkinConditions() == null || diary.getSkinConditions().isBlank()
+                ? List.of() : List.of(diary.getSkinConditions().split(","));
+        return new DailyDiaryResponse(diary.getDate(), diary.getWeightKg(), diary.getMood(),
+                diary.getStress(), diary.getFatigue(), diary.getWaterMl(), skin,
+                diary.getPeriodStart(), diary.getPeriodEnd(), diary.getMemo(),
+                legacy.totalCalories(), legacy.calorieChange(), legacy.recommendedCalories(),
+                legacy.remainingCalories(), legacy.totalActivity(), legacy.activityChange(),
+                legacy.meals(), legacy.activities());
     }
 }

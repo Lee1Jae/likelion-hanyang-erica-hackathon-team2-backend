@@ -72,6 +72,40 @@ class AuthControllerIntegrationTests {
     }
 
     @Test
+    void agreedSessionEndpointReissuesAndLogsOut() throws Exception {
+        mockMvc.perform(post("/api/v1/auth/signup")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("""
+                                {"email":"session@example.com","password":"Password1!","nickname":"세션"}
+                                """))
+                .andExpect(status().isCreated());
+
+        JsonNode login = objectMapper.readTree(mockMvc.perform(post("/api/v1/auth/login")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("""
+                                {"email":"session@example.com","password":"Password1!"}
+                                """))
+                .andReturn().getResponse().getContentAsString());
+
+        JsonNode reissued = objectMapper.readTree(mockMvc.perform(post("/api/v1/auth/session")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("""
+                                {"action":"REISSUE","refreshToken":"%s"}
+                                """.formatted(login.get("refreshToken").asText())))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.accessToken").isNotEmpty())
+                .andReturn().getResponse().getContentAsString());
+
+        mockMvc.perform(post("/api/v1/auth/session")
+                        .header("Authorization", "Bearer " + reissued.get("accessToken").asText())
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("""
+                                {"action":"LOGOUT","refreshToken":"%s"}
+                                """.formatted(reissued.get("refreshToken").asText())))
+                .andExpect(status().isNoContent());
+    }
+
+    @Test
     void rejectsInvalidSignupRequest() throws Exception {
         mockMvc.perform(post("/api/v1/auth/signup")
                         .contentType(MediaType.APPLICATION_JSON)

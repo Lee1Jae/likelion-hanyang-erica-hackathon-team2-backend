@@ -48,6 +48,22 @@ public class Diary extends BaseTimeEntity {
     @Column(name = "menstrual_status")
     private Boolean menstrualStatus;
 
+    @Column(length = 30)
+    private String mood;
+
+    private Integer stress;
+
+    private Integer fatigue;
+
+    @Column(name = "skin_conditions", length = 500)
+    private String skinConditions;
+
+    @Column(name = "period_start")
+    private LocalDate periodStart;
+
+    @Column(name = "period_end")
+    private LocalDate periodEnd;
+
     protected Diary() {}
 
     public Diary(User user, LocalDate date) {
@@ -65,6 +81,20 @@ public class Diary extends BaseTimeEntity {
         this.menstrualStatus = menstrualStatus;
     }
 
+    public void patchDaily(BigDecimal weightKg, String mood, Integer stress, Integer fatigue,
+                           Integer waterMl, String skinConditions, LocalDate periodStart,
+                           LocalDate periodEnd, String note) {
+        if (weightKg != null) this.weightKg = weightKg;
+        if (mood != null) this.mood = mood;
+        if (stress != null) this.stress = stress;
+        if (fatigue != null) this.fatigue = fatigue;
+        if (waterMl != null) this.waterMl = waterMl;
+        if (skinConditions != null) this.skinConditions = skinConditions;
+        if (periodStart != null) this.periodStart = periodStart;
+        if (periodEnd != null) this.periodEnd = periodEnd;
+        if (note != null) this.memo = note;
+    }
+
     public Long getId() { return id; }
     public LocalDate getDate() { return date; }
     public String getMemo() { return memo; }
@@ -73,4 +103,10 @@ public class Diary extends BaseTimeEntity {
     public Integer getWaterMl() { return waterMl; }
     public String getSkinCondition() { return skinCondition; }
     public Boolean getMenstrualStatus() { return menstrualStatus; }
+    public String getMood() { return mood; }
+    public Integer getStress() { return stress; }
+    public Integer getFatigue() { return fatigue; }
+    public String getSkinConditions() { return skinConditions; }
+    public LocalDate getPeriodStart() { return periodStart; }
+    public LocalDate getPeriodEnd() { return periodEnd; }
 }

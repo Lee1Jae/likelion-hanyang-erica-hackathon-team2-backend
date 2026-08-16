@@ -4,6 +4,8 @@ import com.bloom.backend.auth.dto.LoginRequest;
 import com.bloom.backend.auth.dto.RefreshTokenRequest;
 import com.bloom.backend.auth.dto.SignupRequest;
 import com.bloom.backend.auth.dto.SignupResponse;
+import com.bloom.backend.auth.dto.SessionAction;
+import com.bloom.backend.auth.dto.SessionRequest;
 import com.bloom.backend.auth.dto.TokenResponse;
 import com.bloom.backend.auth.service.AuthService;
 import io.swagger.v3.oas.annotations.Operation;
@@ -51,6 +53,22 @@ public class AuthController {
             Authentication authentication,
             @Valid @RequestBody RefreshTokenRequest request
     ) {
+        authService.logout(Long.valueOf(authentication.getName()), request.refreshToken());
+        return ResponseEntity.noContent().build();
+    }
+
+    @Operation(summary = "세션 관리", description = "REISSUE는 새 토큰을 반환하고 LOGOUT은 204를 반환합니다.")
+    @PostMapping("/session")
+    public ResponseEntity<?> manageSession(
+            Authentication authentication,
+            @Valid @RequestBody SessionRequest request
+    ) {
+        if (request.action() == SessionAction.REISSUE) {
+            return ResponseEntity.ok(authService.reissue(request.refreshToken()));
+        }
+        if (authentication == null) {
+            return ResponseEntity.status(401).build();
+        }
         authService.logout(Long.valueOf(authentication.getName()), request.refreshToken());
         return ResponseEntity.noContent().build();
     }
