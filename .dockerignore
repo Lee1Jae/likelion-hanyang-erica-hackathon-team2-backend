@@ -1,0 +1,10 @@
+.git
+.github
+.gradle
+.idea
+.artifact-work-single
+build
+outputs
+*.iml
+.env
+.DS_Store
