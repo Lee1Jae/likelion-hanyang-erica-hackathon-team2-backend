@@ -7,6 +7,9 @@ import com.bloom.backend.diary.repository.DiaryRepository;
 import com.bloom.backend.diary.repository.MealRepository;
 import com.bloom.backend.global.error.BusinessException;
 import com.bloom.backend.global.error.ErrorCode;
+import com.bloom.backend.mileage.repository.MileageHistoryRepository;
+import com.bloom.backend.mileage.repository.MileageWalletRepository;
+import com.bloom.backend.upload.repository.UploadedImageRepository;
 import com.bloom.backend.user.domain.User;
 import com.bloom.backend.user.domain.UserProfile;
 import com.bloom.backend.user.dto.OnboardingRequest;
@@ -29,11 +32,16 @@ public class UserService {
     private final ActivityRepository activityRepository;
     private final DiaryRepository diaryRepository;
     private final BodyCheckRepository bodyCheckRepository;
+    private final UploadedImageRepository uploadedImageRepository;
+    private final MileageHistoryRepository mileageHistoryRepository;
+    private final MileageWalletRepository mileageWalletRepository;
 
     public UserService(UserRepository userRepository, UserProfileRepository profileRepository,
                        RefreshTokenRepository refreshTokenRepository, MealRepository mealRepository,
                        ActivityRepository activityRepository, DiaryRepository diaryRepository,
-                       BodyCheckRepository bodyCheckRepository) {
+                       BodyCheckRepository bodyCheckRepository, UploadedImageRepository uploadedImageRepository,
+                       MileageHistoryRepository mileageHistoryRepository,
+                       MileageWalletRepository mileageWalletRepository) {
         this.userRepository = userRepository;
         this.profileRepository = profileRepository;
         this.refreshTokenRepository = refreshTokenRepository;
@@ -41,6 +49,9 @@ public class UserService {
         this.activityRepository = activityRepository;
         this.diaryRepository = diaryRepository;
         this.bodyCheckRepository = bodyCheckRepository;
+        this.uploadedImageRepository = uploadedImageRepository;
+        this.mileageHistoryRepository = mileageHistoryRepository;
+        this.mileageWalletRepository = mileageWalletRepository;
     }
 
     @Transactional
@@ -49,7 +60,8 @@ public class UserService {
         UserProfile profile = profileRepository.findByUserId(userId)
                 .orElseGet(() -> new UserProfile(user));
         profile.completeOnboarding(request.birthDate(), request.deliveryDate(), request.heightCm(), request.weightKg(),
-                join(request.beautyGoals()), join(request.healthIssues()), request.lastPeriodDate(), request.cycleLength());
+                join(request.beautyGoals()), join(request.healthIssues()), join(request.focusAreas()),
+                join(request.recoveryAreas()), join(request.skinConcerns()), request.lastPeriodDate(), request.cycleLength());
         profileRepository.save(profile);
         return response(user, profile);
     }
@@ -66,6 +78,9 @@ public class UserService {
         profile.update(request.heightCm(), request.weightKg(),
                 request.beautyGoals() == null ? null : join(request.beautyGoals()),
                 request.healthIssues() == null ? null : join(request.healthIssues()),
+                request.focusAreas() == null ? null : join(request.focusAreas()),
+                request.recoveryAreas() == null ? null : join(request.recoveryAreas()),
+                request.skinConcerns() == null ? null : join(request.skinConcerns()),
                 request.lastPeriodDate(), request.cycleLength());
         return response(user, profile);
     }
@@ -77,6 +92,9 @@ public class UserService {
         mealRepository.deleteAllByDiaryUserId(userId);
         diaryRepository.deleteAllByUserId(userId);
         bodyCheckRepository.deleteAllByUserId(userId);
+        uploadedImageRepository.deleteAllByUserId(userId);
+        mileageHistoryRepository.deleteAllByUserId(userId);
+        mileageWalletRepository.deleteByUserId(userId);
         refreshTokenRepository.deleteAllByUserId(userId);
         profileRepository.deleteByUserId(userId);
         userRepository.delete(user);
@@ -94,12 +112,13 @@ public class UserService {
     private ProfileResponse response(User user, UserProfile profile) {
         return new ProfileResponse(user.getId(), user.getEmail(), user.getNickname(), profile.getBirthDate(),
                 profile.getDeliveryDate(), profile.getHeightCm(), profile.getWeightKg(), split(profile.getBeautyGoals()),
-                split(profile.getHealthIssues()), profile.getLastPeriodDate(), profile.getCycleLength(),
+                split(profile.getHealthIssues()), split(profile.getFocusAreas()), split(profile.getRecoveryAreas()),
+                split(profile.getSkinConcerns()), profile.getLastPeriodDate(), profile.getCycleLength(),
                 profile.isOnboardingCompleted());
     }
 
     private String join(List<String> values) {
-        return values == null || values.isEmpty() ? null : String.join(",", values);
+        return values == null ? null : String.join(",", values);
     }
 
     private List<String> split(String values) {

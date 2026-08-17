@@ -8,6 +8,20 @@
 - 미기록 숫자·날짜: `null`
 - 빈 태그 목록: `[]`
 
+## 0. 온보딩·프로필 추가 필드
+
+`POST /api/v1/onboarding`, `GET /api/v1/users/me/profile`, `PATCH /api/v1/users/me/profile`은 다음 배열을 공통으로 사용합니다.
+
+```json
+{
+  "focusAreas": ["ABDOMEN", "THIGH"],
+  "recoveryAreas": ["CORE", "PELVIS"],
+  "skinConcerns": ["STRETCH_MARKS", "LOSS_OF_ELASTICITY"]
+}
+```
+
+PATCH는 전달한 필드만 변경합니다. 빈 배열 `[]`을 전달하면 해당 목록을 비웁니다. 필드를 생략하면 기존 값을 유지합니다.
+
 ## 1. 일일 컨디션·생활 기록
 
 ### 조회
@@ -246,3 +260,39 @@ GET  /api/v1/ai/conversations/{conversationId}
 - AI 식단 분석 모델·타임아웃·재시도와 최소 개인화 정보
 - 눈바디 파일 업로드 저장소와 AI 예상 이미지 생성
 - 추천 시술의 필드와 추천 기준
+
+## 7. 이미지 업로드
+
+`POST /api/v1/uploads/images`는 `multipart/form-data`로 `file`과 `purpose=BODY_CHECK`를 받습니다. JPEG, PNG, WebP만 허용하며 최대 크기는 10MB입니다.
+
+```json
+{
+  "imageUrl": "https://{backend}/api/v1/uploads/images/1",
+  "contentType": "image/jpeg",
+  "size": 1839281
+}
+```
+
+이미지는 MVP에서 MySQL에 비공개 저장되며 `GET /api/v1/uploads/images/{imageId}`도 Bearer Access Token이 필요합니다. 따라서 프론트는 `imageUrl`을 인증 헤더로 `fetch`한 후 응답 Blob을 `URL.createObjectURL`로 변환해 표시합니다. 업로드 URL을 `POST /api/v1/care/body-checks`의 `originalImageUrl`로 저장합니다.
+
+## 8. AI 추천 시술과 리포트
+
+```http
+POST /api/v1/ai/procedures/recommendations
+POST /api/v1/ai/reports
+GET  /api/v1/ai/reports/{reportId}
+GET  /api/v1/ai/reports/latest
+```
+
+추천 시술은 `bodyCheckId`만 받고 프로필·미용 목표·건강정보는 백엔드가 조회합니다. 리포트 생성은 `from`, `to`를 받습니다. 응답 계약은 `AI_API_DRAFT.md`를 따릅니다. 현재 모델 제공자와 API 키가 연결되지 않았으므로 생성 요청은 가짜 데이터를 반환하지 않고 `503 AI_SERVICE_UNAVAILABLE`, 조회할 리포트가 없으면 `404 AI_REPORT_NOT_FOUND`를 반환합니다.
+
+## 9. 마일리지
+
+```http
+GET  /api/v1/mileage
+GET  /api/v1/mileage/history
+POST /api/v1/mileage/attendance
+POST /api/v1/mileage/routine-streak/check
+```
+
+출석은 Asia/Seoul 기준 날짜마다 100점, 운동 연속 기록은 3일 100점·7일 300점·14일 500점입니다. 운동일은 `exerciseMinutes > 0` 또는 `burnedKcal > 0`인 Activity가 존재하는 날짜이며 오늘부터 연속된 일수를 계산합니다. `ATTENDANCE:{date}`, `ROUTINE_STREAK:{days}` 고유 참조값으로 중복 지급을 방지합니다. 스토어 구매 보상은 실제 주문 API가 없으므로 구현하지 않습니다.

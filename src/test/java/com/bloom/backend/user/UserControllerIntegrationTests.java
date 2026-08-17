@@ -42,15 +42,22 @@ class UserControllerIntegrationTests {
                         .content("""
                                 {"birthDate":"1995-01-01","deliveryDate":"2026-06-01","heightCm":165.0,
                                  "weightKg":61.0,"beautyGoals":["DIET"],"healthIssues":["BACK_PAIN"],
+                                 "focusAreas":["ABDOMEN","THIGH"],"recoveryAreas":["CORE","PELVIS"],
+                                 "skinConcerns":["STRETCH_MARKS","LOSS_OF_ELASTICITY"],
                                  "lastPeriodDate":"2026-07-20","cycleLength":28}
                                 """))
                 .andExpect(status().isOk())
-                .andExpect(jsonPath("$.onboardingCompleted").value(true));
+                .andExpect(jsonPath("$.onboardingCompleted").value(true))
+                .andExpect(jsonPath("$.focusAreas[0]").value("ABDOMEN"))
+                .andExpect(jsonPath("$.recoveryAreas[1]").value("PELVIS"));
 
         mockMvc.perform(patch("/api/v1/users/me/profile").header("Authorization", "Bearer " + token)
-                        .contentType(MediaType.APPLICATION_JSON).content("{" + "\"weightKg\":60.5}"))
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("{\"weightKg\":60.5,\"focusAreas\":[],\"skinConcerns\":[\"DRYNESS\"]}"))
                 .andExpect(status().isOk())
-                .andExpect(jsonPath("$.weightKg").value(60.5));
+                .andExpect(jsonPath("$.weightKg").value(60.5))
+                .andExpect(jsonPath("$.focusAreas").isEmpty())
+                .andExpect(jsonPath("$.skinConcerns[0]").value("DRYNESS"));
 
         mockMvc.perform(get("/api/v1/users/me/profile").header("Authorization", "Bearer " + token))
                 .andExpect(status().isOk())

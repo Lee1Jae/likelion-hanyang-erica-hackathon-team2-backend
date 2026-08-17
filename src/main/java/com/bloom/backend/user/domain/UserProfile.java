@@ -49,6 +49,15 @@ public class UserProfile extends BaseTimeEntity {
     @Column(name = "health_issues", columnDefinition = "TEXT")
     private String healthIssues;
 
+    @Column(name = "focus_areas", columnDefinition = "TEXT")
+    private String focusAreas;
+
+    @Column(name = "recovery_areas", columnDefinition = "TEXT")
+    private String recoveryAreas;
+
+    @Column(name = "skin_concerns", columnDefinition = "TEXT")
+    private String skinConcerns;
+
     @Column(name = "onboarding_completed", nullable = false)
     private boolean onboardingCompleted;
 
@@ -62,6 +71,7 @@ public class UserProfile extends BaseTimeEntity {
 
     public void completeOnboarding(LocalDate birthDate, LocalDate deliveryDate, BigDecimal heightCm,
                                    BigDecimal weightKg, String beautyGoals, String healthIssues,
+                                   String focusAreas, String recoveryAreas, String skinConcerns,
                                    LocalDate lastPeriodDate, Integer cycleLength) {
         this.birthDate = birthDate;
         this.deliveryDate = deliveryDate;
@@ -69,17 +79,24 @@ public class UserProfile extends BaseTimeEntity {
         this.weightKg = weightKg;
         this.beautyGoals = beautyGoals;
         this.healthIssues = healthIssues;
+        this.focusAreas = focusAreas;
+        this.recoveryAreas = recoveryAreas;
+        this.skinConcerns = skinConcerns;
         this.lastPeriodDate = lastPeriodDate;
         this.cycleLength = cycleLength;
         this.onboardingCompleted = true;
     }
 
     public void update(BigDecimal heightCm, BigDecimal weightKg, String beautyGoals, String healthIssues,
+                       String focusAreas, String recoveryAreas, String skinConcerns,
                        LocalDate lastPeriodDate, Integer cycleLength) {
         if (heightCm != null) this.heightCm = heightCm;
         if (weightKg != null) this.weightKg = weightKg;
         if (beautyGoals != null) this.beautyGoals = beautyGoals;
         if (healthIssues != null) this.healthIssues = healthIssues;
+        if (focusAreas != null) this.focusAreas = focusAreas;
+        if (recoveryAreas != null) this.recoveryAreas = recoveryAreas;
+        if (skinConcerns != null) this.skinConcerns = skinConcerns;
         if (lastPeriodDate != null) this.lastPeriodDate = lastPeriodDate;
         if (cycleLength != null) this.cycleLength = cycleLength;
     }
@@ -92,5 +109,8 @@ public class UserProfile extends BaseTimeEntity {
     public Integer getCycleLength() { return cycleLength; }
     public String getBeautyGoals() { return beautyGoals; }
     public String getHealthIssues() { return healthIssues; }
+    public String getFocusAreas() { return focusAreas; }
+    public String getRecoveryAreas() { return recoveryAreas; }
+    public String getSkinConcerns() { return skinConcerns; }
     public boolean isOnboardingCompleted() { return onboardingCompleted; }
 }

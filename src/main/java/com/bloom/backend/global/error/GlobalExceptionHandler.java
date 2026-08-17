@@ -11,6 +11,8 @@ import org.springframework.http.converter.HttpMessageNotReadableException;
 import org.springframework.validation.FieldError;
 import org.springframework.web.method.annotation.MethodArgumentTypeMismatchException;
 import org.springframework.web.bind.MethodArgumentNotValidException;
+import org.springframework.web.multipart.MaxUploadSizeExceededException;
+import org.springframework.web.multipart.support.MissingServletRequestPartException;
 import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.RestControllerAdvice;
 
@@ -51,6 +53,19 @@ public class GlobalExceptionHandler {
             HttpServletRequest request
     ) {
         return ResponseEntity.badRequest().body(response(ErrorCode.COMMON_INVALID_INPUT, request, List.of()));
+    }
+
+    @ExceptionHandler(MissingServletRequestPartException.class)
+    public ResponseEntity<ErrorResponse> handleMissingPart(
+            MissingServletRequestPartException exception, HttpServletRequest request) {
+        return ResponseEntity.badRequest().body(response(ErrorCode.IMAGE_EMPTY, request, List.of()));
+    }
+
+    @ExceptionHandler(MaxUploadSizeExceededException.class)
+    public ResponseEntity<ErrorResponse> handleUploadSize(
+            MaxUploadSizeExceededException exception, HttpServletRequest request) {
+        return ResponseEntity.status(ErrorCode.IMAGE_TOO_LARGE.getStatus())
+                .body(response(ErrorCode.IMAGE_TOO_LARGE, request, List.of()));
     }
 
     @ExceptionHandler(Exception.class)

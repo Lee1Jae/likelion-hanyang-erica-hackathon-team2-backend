@@ -119,6 +119,24 @@ POST /api/v1/care/body-checks/{bodyCheckId}/analysis
 
 응답 상태는 `ANALYZING`, `COMPLETED`, `FAILED`입니다. 결과는 기존 눈바디 조회의 `expectedImageUrl`에서 확인합니다.
 
+### 추천 시술
+
+```http
+POST /api/v1/ai/procedures/recommendations
+```
+
+프론트는 `bodyCheckId`만 전송하고 백엔드가 로그인 사용자의 프로필·미용 목표·건강정보를 조합합니다. 추정할 수 없는 가격·횟수·간격은 0이나 임의 문구 대신 null입니다. AI 미연결 또는 제공자 장애 시 `503 AI_SERVICE_UNAVAILABLE`을 반환합니다.
+
+### AI 리포트
+
+```http
+POST /api/v1/ai/reports
+GET  /api/v1/ai/reports/{reportId}
+GET  /api/v1/ai/reports/latest
+```
+
+생성 요청은 `from`, `to`만 받고 백엔드가 해당 기간의 프로필·컨디션·식단·활동·피부·생리 기록을 조회합니다. 상태는 `PROCESSING`, `COMPLETED`, `FAILED`를 사용합니다. 실제 모델 연결 전 생성은 503, 저장된 리포트가 없으면 404입니다.
+
 ### AI 채팅
 
 ```http

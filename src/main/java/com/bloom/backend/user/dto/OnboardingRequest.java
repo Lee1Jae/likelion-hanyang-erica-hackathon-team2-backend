@@ -16,6 +16,9 @@ public record OnboardingRequest(
         @NotNull @DecimalMin("20.0") @DecimalMax("300.0") BigDecimal weightKg,
         @NotEmpty List<String> beautyGoals,
         List<String> healthIssues,
+        List<String> focusAreas,
+        List<String> recoveryAreas,
+        List<String> skinConcerns,
         LocalDate lastPeriodDate,
         @Positive Integer cycleLength
 ) {}

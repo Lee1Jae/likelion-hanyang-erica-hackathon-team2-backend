@@ -14,6 +14,9 @@ public record ProfileResponse(
         BigDecimal weightKg,
         List<String> beautyGoals,
         List<String> healthIssues,
+        List<String> focusAreas,
+        List<String> recoveryAreas,
+        List<String> skinConcerns,
         LocalDate lastPeriodDate,
         Integer cycleLength,
         boolean onboardingCompleted
