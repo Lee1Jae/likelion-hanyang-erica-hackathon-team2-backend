@@ -2,6 +2,7 @@ package com.bloom.backend.ai.controller;
 
 import com.bloom.backend.ai.dto.*;
 import com.bloom.backend.ai.service.AiCareService;
+import com.bloom.backend.ai.service.AiChatService;
 import jakarta.validation.Valid;
 import org.springframework.security.core.Authentication;
 import org.springframework.web.bind.annotation.*;
@@ -10,7 +11,10 @@ import org.springframework.web.bind.annotation.*;
 @RequestMapping("/api/v1/ai")
 public class AiCareController {
     private final AiCareService aiCareService;
-    public AiCareController(AiCareService aiCareService) { this.aiCareService = aiCareService; }
+    private final AiChatService aiChatService;
+    public AiCareController(AiCareService aiCareService, AiChatService aiChatService) {
+        this.aiCareService = aiCareService; this.aiChatService = aiChatService;
+    }
     @PostMapping("/procedures/recommendations")
     public ProcedureRecommendationsResponse procedures(Authentication auth,
             @Valid @RequestBody ProcedureRecommendationRequest request) {
@@ -26,5 +30,17 @@ public class AiCareController {
     }
     @GetMapping("/reports/latest")
     public AiReportResponse latest(Authentication auth) { return aiCareService.latestReport(userId(auth)); }
+    @PostMapping("/chat")
+    public AiChatResponse chat(Authentication auth, @Valid @RequestBody AiChatRequest request) {
+        return aiChatService.chat(userId(auth), request);
+    }
+    @GetMapping("/conversations")
+    public java.util.List<AiConversationSummary> conversations(Authentication auth) {
+        return aiChatService.conversations(userId(auth));
+    }
+    @GetMapping("/conversations/{conversationId}")
+    public AiConversationDetail conversation(Authentication auth, @PathVariable Long conversationId) {
+        return aiChatService.conversation(userId(auth), conversationId);
+    }
     private Long userId(Authentication authentication) { return Long.valueOf(authentication.getName()); }
 }

@@ -72,7 +72,32 @@ class NewFeatureIntegrationTests {
                         .content("{\"from\":\"2026-08-10\",\"to\":\"2026-08-16\"}"))
                 .andExpect(status().isServiceUnavailable());
         mockMvc.perform(get("/api/v1/ai/reports/latest").header("Authorization", "Bearer " + token))
-                .andExpect(status().isNotFound());
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.status").value("FAILED"));
+    }
+
+    @Test
+    void periodRecordsSupportOwnedCrud() throws Exception {
+        String token = signupAndLogin("period@example.com");
+        String created = mockMvc.perform(post("/api/v1/periods")
+                        .header("Authorization", "Bearer " + token).contentType(MediaType.APPLICATION_JSON)
+                        .content("{\"startDate\":\"2026-08-18\",\"endDate\":\"2026-08-22\"}"))
+                .andExpect(status().isCreated())
+                .andExpect(jsonPath("$.startDate").value("2026-08-18"))
+                .andReturn().getResponse().getContentAsString();
+        long periodId = objectMapper.readTree(created).get("periodId").asLong();
+
+        mockMvc.perform(get("/api/v1/periods").header("Authorization", "Bearer " + token))
+                .andExpect(status().isOk()).andExpect(jsonPath("$[0].periodId").value(periodId));
+        mockMvc.perform(patch("/api/v1/periods/{periodId}", periodId)
+                        .header("Authorization", "Bearer " + token).contentType(MediaType.APPLICATION_JSON)
+                        .content("{\"endDate\":\"2026-08-23\"}"))
+                .andExpect(status().isOk()).andExpect(jsonPath("$.endDate").value("2026-08-23"));
+        mockMvc.perform(delete("/api/v1/periods/{periodId}", periodId)
+                        .header("Authorization", "Bearer " + token))
+                .andExpect(status().isNoContent());
+        mockMvc.perform(get("/api/v1/periods").header("Authorization", "Bearer " + token))
+                .andExpect(status().isOk()).andExpect(jsonPath("$").isEmpty());
     }
 
     private String signupAndLogin(String email) throws Exception {

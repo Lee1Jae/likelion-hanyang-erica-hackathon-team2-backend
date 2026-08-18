@@ -71,6 +71,27 @@ Content-Type: application/json
 
 PATCH는 전달한 필드만 변경합니다. `stress`, `fatigue`, `mood`, `note`는 사용하지 않습니다.
 
+### 생리 기간 기록 CRUD
+
+일일 기록의 `periodStart`, `periodEnd`와 별도로 캘린더에서 생리 기간 목록을 관리할 때 사용합니다.
+
+```http
+POST   /api/v1/periods
+GET    /api/v1/periods
+PATCH  /api/v1/periods/{periodId}
+DELETE /api/v1/periods/{periodId}
+```
+
+```json
+{
+  "startDate": "2026-08-18",
+  "endDate": "2026-08-22"
+}
+```
+
+생성은 두 날짜가 모두 필수이고 `startDate <= endDate`여야 합니다. PATCH는 둘 중 변경할 값만 보내며,
+빈 요청은 400입니다. GET은 시작일이 최근인 기록부터 배열로 반환하고, 본인 기록만 조회·변경·삭제할 수 있습니다.
+
 ### 감정 태그
 
 | 화면 표시 | API enum |
@@ -170,7 +191,19 @@ DELETE /api/v1/meals/{mealId}
 }
 ```
 
-`mealType`은 `BREAKFAST`, `LUNCH`, `DINNER`, `SNACK` 중 하나입니다. `kcal`, `carbs`, `protein`, `fat`은 알 수 없으면 null일 수 있습니다. 일일 합계는 null 항목을 제외해 계산하며 두 일일 조회 응답 모두 `nutritionIncomplete`로 일부 영양정보가 빠졌는지 알립니다. AI 식단 분석은 사진과 텍스트를 하나의 API에서 서로 다른 요청으로 지원합니다. 분석 결과는 DRAFT로 임시 저장되고 음식 추가·수정·삭제 후 `기록하기`를 누르면 별도 확정 단계 없이 일반 식단으로 저장됩니다. 기록 후에도 일반 식단 수정 API로 변경할 수 있습니다. 사진 입력은 정식 식단에 연결하여 1년간 표시합니다. 현재 AI 분석은 구현 전입니다.
+`mealType`은 `BREAKFAST`, `LUNCH`, `DINNER`, `SNACK` 중 하나입니다. `kcal`, `carbs`, `protein`, `fat`은 알 수 없으면 null일 수 있습니다. 일일 합계는 null 항목을 제외해 계산하며 두 일일 조회 응답 모두 `nutritionIncomplete`로 일부 영양정보가 빠졌는지 알립니다.
+
+AI 식단 분석은 다음 하나의 API에서 `inputType=IMAGE` 또는 `inputType=TEXT`로 구분하며, 사진과 텍스트를 동시에 보내지 않습니다.
+
+```http
+POST /api/v1/ai/nutrition/analyses
+Content-Type: multipart/form-data
+```
+
+분석 결과는 `DRAFT`로 서버에 임시 저장됩니다. 사용자는 음식 항목을 추가·수정·삭제할 수 있고,
+`POST /api/v1/ai/nutrition/analyses/{analysisId}/record`를 호출하면 별도 확정 단계 없이 일반 식단으로 저장됩니다.
+기록된 식단 응답에는 `nutritionAnalysisId`, 사진 입력이면 `sourceImageUrl`이 포함되며 이후 일반 식단 PATCH/DELETE API로 변경할 수 있습니다.
+영양값을 판단할 수 없으면 0을 만들지 않고 null로 반환합니다. 자세한 요청·응답은 `AI_API_DRAFT.md`를 따릅니다.
 
 ## 4. 눈바디 사진 기록
 
@@ -222,7 +255,8 @@ DELETE /api/v1/care/body-checks/{bodyCheckId}
 
 ### 이미지 업로드 책임
 
-현재 백엔드는 이미지 URL만 저장하며 파일 업로드 API는 제공하지 않습니다. 이미지 저장소, 업로드 주체, URL 발급 방식, 파일 크기·형식·보관 정책은 프론트·백엔드가 별도로 확정해야 합니다. 이미지 저장소가 정해진 뒤에는 허용 호스트 검증 또는 백엔드 발급 업로드 URL 방식으로 보강합니다.
+프론트는 먼저 `POST /api/v1/uploads/images`에 파일과 `purpose=BODY_CHECK`를 보내고,
+응답의 인증 이미지 URL을 `originalImageUrl`로 저장합니다. 프론트가 `blob:` URL이나 로컬 경로를 눈바디 API에 직접 보내면 안 됩니다.
 
 AI 예상 이미지는 후순위입니다. 응답의 `expectedImageUrl`은 구현 전까지 null이고 `analysisStatus`는 `NOT_REQUESTED`입니다.
 
@@ -253,13 +287,17 @@ GET  /api/v1/ai/conversations/{conversationId}
 }
 ```
 
-`createdAt`은 ISO-8601 UTC 시각입니다. 대화 목록은 최신 대화 순, 대화 상세의 메시지는 오래된 순으로 반환합니다. 다른 사용자의 대화 또는 존재하지 않는 대화는 정보 노출 방지를 위해 동일하게 `404 Not Found`로 처리합니다. 구체적인 목록·상세 응답과 실패 정책은 `AI_API_DRAFT.md`를 따릅니다. 현재 API 계약만 확정됐으며 AI 호출과 대화 저장 코드는 구현 전입니다.
+`createdAt`은 ISO-8601 UTC 시각입니다. 대화 목록은 최신 대화 순, 대화 상세의 메시지는 오래된 순으로 반환합니다. 다른 사용자의 대화 또는 존재하지 않는 대화는 정보 노출 방지를 위해 동일하게 `404 Not Found`로 처리합니다. 구체적인 목록·상세 응답과 실패 정책은 `AI_API_DRAFT.md`를 따릅니다. 대화·메시지 저장과 실제 모델 호출이 구현되어 있으며, 제공자 키가 없거나 호출이 실패하면 가짜 답변 대신 `503 AI_SERVICE_UNAVAILABLE`을 반환합니다.
 
-## 6. 아직 확정하지 않은 계약
+## 6. AI 운영 계약
 
-- AI 식단 분석 모델·타임아웃·재시도와 최소 개인화 정보
-- 눈바디 파일 업로드 저장소와 AI 예상 이미지 생성
-- 추천 시술의 필드와 추천 기준
+- 기본 모델: `OPENAI_MODEL` 환경변수, 현재 기본값 `gpt-5.6-terra`
+- 호출 방식: OpenAI Responses API, 구조화 JSON 출력
+- 제한시간: 연결 10초, 응답 60초
+- 재시도: 네트워크·서버 장애에 한해 1회
+- 개인정보: 이메일·닉네임·원본 생년월일은 모델에 보내지 않고 나이·산후 경과일과 필요한 건강 기록만 전달
+- 실패 정책: 가짜 결과를 만들지 않고 503, 리포트는 `FAILED`, 식단은 직접 입력 가능 상태로 저장
+- 미구현: 눈바디 예상 변화 이미지 생성, 식약처 데이터 API 연결
 
 ## 7. 이미지 업로드
 
@@ -284,7 +322,7 @@ GET  /api/v1/ai/reports/{reportId}
 GET  /api/v1/ai/reports/latest
 ```
 
-추천 시술은 `bodyCheckId`만 받고 프로필·미용 목표·건강정보는 백엔드가 조회합니다. 리포트 생성은 `from`, `to`를 받습니다. 응답 계약은 `AI_API_DRAFT.md`를 따릅니다. 현재 모델 제공자와 API 키가 연결되지 않았으므로 생성 요청은 가짜 데이터를 반환하지 않고 `503 AI_SERVICE_UNAVAILABLE`, 조회할 리포트가 없으면 `404 AI_REPORT_NOT_FOUND`를 반환합니다.
+추천 시술은 `bodyCheckId`만 받고, 백엔드가 눈바디 원본 이미지와 프로필·미용 목표·건강정보를 조합해 모델에 전달합니다. 판단할 근거가 없는 가격·횟수·간격은 null입니다. 리포트 생성은 최대 31일 범위의 `from`, `to`를 받고 해당 기간의 컨디션 점수·태그, 식단 합계, 활동, 피부, 생리 기록을 취합합니다. 응답 계약은 `AI_API_DRAFT.md`를 따릅니다. `OPENAI_API_KEY`가 없거나 제공자 장애가 발생하면 가짜 결과 없이 `503 AI_SERVICE_UNAVAILABLE`, 조회할 리포트가 없으면 `404 AI_REPORT_NOT_FOUND`를 반환합니다.
 
 ## 9. 마일리지
 

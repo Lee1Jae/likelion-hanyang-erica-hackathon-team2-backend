@@ -126,7 +126,11 @@ public class DiaryService {
                     diary.getBodyScore(), diary.getWaterMl(), sumNullable(meals.stream().map(Meal::getCalories).toList()),
                     activities.stream().mapToInt(Activity::getSteps).sum(),
                     activities.stream().mapToInt(Activity::getExerciseMinutes).sum(),
-                    activities.stream().mapToInt(Activity::getBurnedKcal).sum());
+                    activities.stream().mapToInt(Activity::getBurnedKcal).sum(),
+                    splitEnums(diary.getEmotionTags(), EmotionTag.class),
+                    splitEnums(diary.getBodyTags(), BodyConditionTag.class),
+                    splitEnums(diary.getSkinConditions(), SkinTag.class),
+                    diary.getPeriodStart(), diary.getPeriodEnd());
         }).toList();
     }
 
@@ -145,6 +149,14 @@ public class DiaryService {
         Diary diary = getOrCreateDiary(userId, date);
         return MealResponse.from(mealRepository.save(new Meal(diary, request.mealType(), request.foodName(),
                 request.kcal(), request.carbs(), request.protein(), request.fat())));
+    }
+
+    @Transactional
+    public MealResponse createMealFromNutritionAnalysis(Long userId, LocalDate date, MealRequest request,
+                                                         Long analysisId, String sourceImageUrl) {
+        Diary diary = getOrCreateDiary(userId, date);
+        return MealResponse.from(mealRepository.save(new Meal(diary, request.mealType(), request.foodName(),
+                request.kcal(), request.carbs(), request.protein(), request.fat(), analysisId, sourceImageUrl)));
     }
 
     @Transactional

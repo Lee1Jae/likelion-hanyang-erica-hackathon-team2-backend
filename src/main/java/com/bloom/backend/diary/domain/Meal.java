@@ -42,11 +42,24 @@ public class Meal extends BaseTimeEntity {
     @Column
     private Integer fat;
 
+    @Column(name = "nutrition_analysis_id")
+    private Long nutritionAnalysisId;
+
+    @Column(name = "source_image_url", length = 1000)
+    private String sourceImageUrl;
+
     protected Meal() {}
 
     public Meal(Diary diary, MealType mealType, String foodName, Integer calories, Integer carbs, Integer protein, Integer fat) {
         this.diary = diary;
         update(mealType, foodName, calories, carbs, protein, fat);
+    }
+
+    public Meal(Diary diary, MealType mealType, String foodName, Integer calories, Integer carbs, Integer protein,
+                Integer fat, Long nutritionAnalysisId, String sourceImageUrl) {
+        this(diary, mealType, foodName, calories, carbs, protein, fat);
+        this.nutritionAnalysisId = nutritionAnalysisId;
+        this.sourceImageUrl = sourceImageUrl;
     }
 
     public void update(MealType mealType, String foodName, Integer calories, Integer carbs, Integer protein, Integer fat) {
@@ -66,4 +79,6 @@ public class Meal extends BaseTimeEntity {
     public Integer getCarbs() { return carbs; }
     public Integer getProtein() { return protein; }
     public Integer getFat() { return fat; }
+    public Long getNutritionAnalysisId() { return nutritionAnalysisId; }
+    public String getSourceImageUrl() { return sourceImageUrl; }
 }

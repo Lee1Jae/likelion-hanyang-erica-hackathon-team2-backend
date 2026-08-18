@@ -6,7 +6,7 @@
 
 산후 건강·바디케어 앱의 해커톤 MVP 백엔드입니다. 팀에서 확정한 백엔드 JSON 필드명을 API 계약의 기준으로 삼습니다.
 
-> 현재 `main`: 인증, 온보딩·프로필, 일일 기록, 식단·활동 CRUD, 인증 이미지 업로드, 눈바디 사진 기록, 마일리지 서버 보상을 구현했습니다. AI 생성 API는 공개 계약과 503 실패 처리를 제공하며 실제 모델 연결은 후순위입니다.
+> 현재 구현: 인증, 온보딩·프로필, 일일·생리 기록, 식단·활동 CRUD, 인증 이미지 업로드, 눈바디 사진 기록, 마일리지와 AI 챗봇·식단 분석·눈바디 기반 시술 추천·기간 리포트를 구현했습니다. AI 키가 없거나 제공자 장애가 발생하면 가짜 결과 없이 공통 503을 반환합니다.
 
 ## 빠른 시작
 
@@ -23,7 +23,7 @@ docker compose up -d
 | OpenAPI JSON | `http://localhost:8080/v3/api-docs` |
 | Health check | `http://localhost:8080/actuator/health` |
 
-운영 배포에서는 `DB_URL`, `DB_USERNAME`, `DB_PASSWORD`, `JWT_SECRET`, `CORS_ALLOWED_ORIGINS`를 반드시 환경변수로 설정합니다. Railway는 저장소 루트의 `Dockerfile`과 `railway.json`을 사용하며, `PORT` 환경변수는 자동 반영됩니다.
+운영 배포에서는 `DB_URL`, `DB_USERNAME`, `DB_PASSWORD`, `JWT_SECRET`, `CORS_ALLOWED_ORIGINS`를 반드시 환경변수로 설정합니다. AI 기능에는 `OPENAI_API_KEY`가 추가로 필요하며 모델은 `OPENAI_MODEL`로 변경할 수 있습니다. Railway는 저장소 루트의 `Dockerfile`과 `railway.json`을 사용하며, `PORT` 환경변수는 자동 반영됩니다.
 
 기본 로컬 DB 계정은 `compose.yml`과 일치합니다. 운영 환경에서는 `.env.example`을 참고해 비밀값을 환경변수로 주입하며 실제 `.env`는 커밋하지 않습니다.
 
@@ -40,6 +40,11 @@ docker compose up -d
 - 감정·신체 점수와 태그 기반 컨디션 기록
 - 걸음 수·운동 시간·소모 칼로리를 분리한 활동 기록
 - 눈바디 원본 이미지 URL과 촬영일 기록 CRUD
+- 생리 시작일·종료일 기록 CRUD
+- AI 챗봇과 사용자별 대화 기록
+- 사진·텍스트 식단 AI 분석, 임시 결과 편집, 일반 식단 기록
+- 눈바디 이미지·사용자 목표 기반 시술 추천
+- 컨디션·식단·활동·피부·생리 기록 기반 기간 AI 리포트
 - 총/잔여 칼로리, 영양소, 활동량 및 전일 대비 변화 계산
 - Bean Validation과 공통 오류 응답
 - Swagger/OpenAPI와 Actuator health
@@ -63,15 +68,18 @@ docker compose up -d
 | 식단 | PATCH / DELETE | `/meals/{mealId}` | ✅ 완료 |
 | 활동 | POST | `/diaries/{date}/activities` | ✅ 완료 |
 | 활동 | PATCH / DELETE | `/activities/{activityId}` | ✅ 완료 |
+| 생리 기록 | POST / GET | `/periods` | ✅ 완료 |
+| 생리 기록 | PATCH / DELETE | `/periods/{periodId}` | ✅ 완료 |
 | 눈바디 | POST / GET | `/care/body-checks` | ✅ 사진 기록 완료 |
 | 눈바디 | GET / PATCH / DELETE | `/care/body-checks/{bodyCheckId}` | ✅ 사진 기록 완료 |
 | 호환 API | POST | `/auth/reissue`, `/auth/logout` | ✅ 유지 |
 | 호환 API | GET / PUT | `/diaries/{date}` | ✅ 유지 |
-| AI 식단 분석 | POST | `/ai/nutrition` | 🟡 계약 보완 필요 |
-| 식단 원본 입력 | POST | `/diary/meals` (image/text) | 🟡 저장·응답 정책 필요 |
+| AI 식단 분석 | POST | `/ai/nutrition/analyses` | ✅ 사진·텍스트 완료 |
+| AI 식단 초안 | GET / PATCH / POST / DELETE | `/ai/nutrition/analyses/...` | ✅ 편집·기록 완료 |
+| AI 챗봇 | POST / GET | `/ai/chat`, `/ai/conversations...` | ✅ 완료 |
+| AI 리포트 | POST / GET | `/ai/reports...` | ✅ 완료 |
+| AI 추천 시술 | POST | `/ai/procedures/recommendations` | ✅ 완료 |
 | 눈바디 AI 예상 이미지 | - | `/care/body-checks/.../analysis` | 🟡 후순위 |
-| 추천 시술 | - | `/procedures/...` | 🟡 구현 예정 |
-| 홈·AI 챗봇 | - | `/home`, `/ai/...` | 🟡 미구현 |
 
 `/auth/reissue`, `/auth/logout`, `/diaries/{date}`는 기존 프론트·테스트 호환을 위해 당분간 유지합니다. 프론트 전환이 끝난 뒤 제거 여부를 팀에서 결정합니다.
 
@@ -85,8 +93,14 @@ erDiagram
     USERS ||--o{ REFRESH_TOKENS : owns
     USERS ||--o{ DIARIES : records
     USERS ||--o{ BODY_CHECKS : records
+    USERS ||--o{ PERIOD_RECORDS : records
+    USERS ||--o{ AI_CONVERSATIONS : owns
+    USERS ||--o{ AI_REPORTS : owns
+    USERS ||--o{ NUTRITION_ANALYSES : owns
     DIARIES ||--o{ MEALS : contains
     DIARIES ||--o{ ACTIVITIES : contains
+    AI_CONVERSATIONS ||--o{ AI_CHAT_MESSAGES : contains
+    NUTRITION_ANALYSES ||--o{ NUTRITION_DRAFT_FOODS : contains
 
     USERS {
         BIGINT id PK
@@ -178,6 +192,57 @@ erDiagram
         TIMESTAMP created_at
         TIMESTAMP updated_at
     }
+
+    PERIOD_RECORDS {
+        BIGINT id PK
+        BIGINT user_id FK
+        DATE start_date
+        DATE end_date
+    }
+
+    AI_CONVERSATIONS {
+        BIGINT id PK
+        BIGINT user_id FK
+        VARCHAR title
+        TIMESTAMP last_message_at
+    }
+
+    AI_CHAT_MESSAGES {
+        BIGINT id PK
+        BIGINT conversation_id FK
+        VARCHAR role
+        TEXT content
+        VARCHAR status
+    }
+
+    AI_REPORTS {
+        BIGINT id PK
+        BIGINT user_id FK
+        DATE from_date
+        DATE to_date
+        VARCHAR status
+        TEXT summary
+    }
+
+    NUTRITION_ANALYSES {
+        BIGINT id PK
+        BIGINT user_id FK
+        DATE record_date
+        VARCHAR input_type
+        VARCHAR status
+        VARCHAR image_url
+    }
+
+    NUTRITION_DRAFT_FOODS {
+        BIGINT id PK
+        BIGINT analysis_id FK
+        VARCHAR food_name
+        INT kcal
+        INT carbs
+        INT protein
+        INT fat
+        VARCHAR source
+    }
 ```
 
 - `USERS` ↔ `USER_PROFILES`: 사용자 한 명당 프로필 하나
@@ -238,14 +303,18 @@ API 요청·응답 키는 프론트 화면의 명칭을 그대로 사용합니�
 ./gradlew clean test bootJar
 ```
 
-현재 통합 테스트는 기존 인증·다이어리 흐름과 함께 합의된 세션 API, 온보딩·프로필, 일일 기록 PATCH/GET, 기간 조회를 검증합니다.
+현재 통합 테스트는 기존 인증·다이어리 흐름과 함께 세션 API, 온보딩·프로필, 일일·생리 기록, 이미지·마일리지, AI 성공/실패와 식단 기록 흐름을 검증합니다.
 
 ## 프로젝트 구조
 
 ```text
 src/main/java/com/bloom/backend
 ├── auth       # JWT 인증과 Refresh Token
+├── ai         # 챗봇·식단 분석·리포트·시술 추천
+├── care       # 눈바디 기록
 ├── diary      # 다이어리·식단·활동과 계산
+├── period     # 생리 기간 기록
+├── upload     # 인증 이미지와 보관 정책
 ├── user       # 사용자·온보딩 프로필
 └── global     # 설정, 공통 Entity, 예외 처리
 ```
@@ -253,7 +322,7 @@ src/main/java/com/bloom/backend
 DB 변경은 JPA 자동 생성이 아니라 `src/main/resources/db/migration`의 Flyway SQL로 관리합니다.
 
 프론트 연동에 사용하는 확정 필드와 enum 목록은 [MVP API 명세](docs/API_SPEC.md)를 기준으로 합니다.
-AI 기능은 구현 전 검토용 [AI API 명세 초안](docs/AI_API_DRAFT.md)에 공개 API와 내부 AI API를 분리해 정리합니다.
+AI 기능은 [AI API 구현 명세](docs/AI_API_DRAFT.md)에 공개 계약과 모델 호출·실패 정책을 정리합니다.
 
 ## 협업 규칙
 
