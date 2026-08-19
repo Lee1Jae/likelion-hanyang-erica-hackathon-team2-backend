@@ -5,12 +5,15 @@ import com.bloom.backend.global.error.BusinessException;
 import com.bloom.backend.global.error.ErrorCode;
 import com.fasterxml.jackson.databind.*;
 import java.util.*;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.http.MediaType;
 import org.springframework.stereotype.Component;
 import org.springframework.web.client.*;
 
 @Component
 public class OpenAiResponsesClient {
+    private static final Logger log = LoggerFactory.getLogger(OpenAiResponsesClient.class);
     private final RestClient restClient;
     private final OpenAiProperties properties;
     private final ObjectMapper objectMapper;
@@ -31,6 +34,7 @@ public class OpenAiResponsesClient {
         try {
             return objectMapper.readTree(output);
         } catch (Exception exception) {
+            log.warn("OpenAI structured output could not be parsed: schema={}", schemaName);
             throw new BusinessException(ErrorCode.AI_SERVICE_UNAVAILABLE);
         }
     }
@@ -38,7 +42,10 @@ public class OpenAiResponsesClient {
     public String model() { return properties.getModel(); }
 
     private String execute(String instructions, Object input, String schemaName, JsonNode schema) {
-        if (!properties.configured()) throw new BusinessException(ErrorCode.AI_SERVICE_UNAVAILABLE);
+        if (!properties.configured()) {
+            log.warn("OpenAI request skipped because OPENAI_API_KEY is not configured");
+            throw new BusinessException(ErrorCode.AI_SERVICE_UNAVAILABLE);
+        }
         Map<String, Object> body = new LinkedHashMap<>();
         body.put("model", properties.getModel());
         body.put("instructions", instructions);
@@ -57,11 +64,20 @@ public class OpenAiResponsesClient {
                         .body(body).retrieve().body(JsonNode.class);
                 String output = extractOutputText(response);
                 if (output != null && !output.isBlank()) return output;
+                log.warn("OpenAI response did not contain output_text: model={}, schema={}",
+                        properties.getModel(), schemaName);
                 throw new BusinessException(ErrorCode.AI_SERVICE_UNAVAILABLE);
             } catch (HttpClientErrorException exception) {
+                log.warn("OpenAI rejected request: status={}, code={}, model={}, schema={}",
+                        exception.getStatusCode(), providerErrorCode(exception.getResponseBodyAsString()),
+                        properties.getModel(), schemaName);
                 throw new BusinessException(ErrorCode.AI_SERVICE_UNAVAILABLE);
             } catch (RestClientException exception) {
-                if (attempt == 1) throw new BusinessException(ErrorCode.AI_SERVICE_UNAVAILABLE);
+                if (attempt == 1) {
+                    log.warn("OpenAI request failed after retry: type={}, model={}, schema={}",
+                            exception.getClass().getSimpleName(), properties.getModel(), schemaName);
+                    throw new BusinessException(ErrorCode.AI_SERVICE_UNAVAILABLE);
+                }
             }
         }
         throw new BusinessException(ErrorCode.AI_SERVICE_UNAVAILABLE);
@@ -78,5 +94,14 @@ public class OpenAiResponsesClient {
             }
         }
         return null;
+    }
+
+    private String providerErrorCode(String responseBody) {
+        try {
+            String code = objectMapper.readTree(responseBody).path("error").path("code").asText();
+            return code == null || code.isBlank() ? "unknown" : code;
+        } catch (Exception ignored) {
+            return "unknown";
+        }
     }
 }

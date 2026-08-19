@@ -46,6 +46,14 @@ class AiFeatureIntegrationTests {
                         "description":"피부 탄력 관리를 돕습니다.","reason":"입력한 목표를 기준으로 추천했습니다.",
                         "estimatedSessions":null,"interval":null,"estimatedPrice":null}]}
                         """));
+        when(aiClient.structured(anyString(), any(), eq("meal_recommendations"), any(JsonNode.class)))
+                .thenReturn(objectMapper.readTree("""
+                        {"title":"든든한 저녁","description":"최근 기록을 고려한 균형 식사입니다.",
+                        "foods":[
+                          {"foodName":"현미밥","amount":150,"amountUnit":"g","kcal":230,"carbs":48,"protein":5,"fat":2},
+                          {"foodName":"닭가슴살 구이","amount":100,"amountUnit":"g","kcal":165,"carbs":0,"protein":31,"fat":4}
+                        ],"reason":"최근 활동량과 식단 기록을 바탕으로 구성했습니다."}
+                        """));
     }
 
     @Test
@@ -107,6 +115,39 @@ class AiFeatureIntegrationTests {
                         .content("{\"from\":\"2026-08-10\",\"to\":\"2026-08-16\"}"))
                 .andExpect(status().isOk()).andExpect(jsonPath("$.status").value("COMPLETED"))
                 .andExpect(jsonPath("$.priorities[0].title").value("수분"));
+    }
+
+    @Test
+    void personalizedMealRecommendationReturnsFoodsAndServerCalculatedTotals() throws Exception {
+        String token = signupAndLogin("ai-meal-recommendation@example.com");
+        mockMvc.perform(post("/api/v1/ai/meals/recommendations")
+                        .header("Authorization", "Bearer " + token).contentType(MediaType.APPLICATION_JSON)
+                        .content("{\"date\":\"2026-08-19\",\"mealType\":\"DINNER\"}"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.title").value("든든한 저녁"))
+                .andExpect(jsonPath("$.foods.length()").value(2))
+                .andExpect(jsonPath("$.totalKcal").value(395))
+                .andExpect(jsonPath("$.totalCarbs").value(48))
+                .andExpect(jsonPath("$.totalProtein").value(36))
+                .andExpect(jsonPath("$.totalFat").value(6));
+    }
+
+    @Test
+    void unknownMealNutrientKeepsTheCorrespondingTotalUnknown() throws Exception {
+        when(aiClient.structured(anyString(), any(), eq("meal_recommendations"), any(JsonNode.class)))
+                .thenReturn(objectMapper.readTree("""
+                        {"title":"간단한 저녁","description":"기록을 고려한 식사입니다.",
+                        "foods":[{"foodName":"채소 비빔밥","amount":null,"amountUnit":null,
+                        "kcal":420,"carbs":70,"protein":12,"fat":null}],
+                        "reason":"최근 식단 기록을 바탕으로 구성했습니다."}
+                        """));
+        String token = signupAndLogin("ai-meal-null@example.com");
+        mockMvc.perform(post("/api/v1/ai/meals/recommendations")
+                        .header("Authorization", "Bearer " + token).contentType(MediaType.APPLICATION_JSON)
+                        .content("{\"date\":\"2026-08-19\",\"mealType\":\"DINNER\"}"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.totalKcal").value(420))
+                .andExpect(jsonPath("$.totalFat").doesNotExist());
     }
 
     private String signupAndLogin(String email) throws Exception {

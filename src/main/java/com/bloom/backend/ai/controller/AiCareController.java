@@ -20,6 +20,11 @@ public class AiCareController {
             @Valid @RequestBody ProcedureRecommendationRequest request) {
         return aiCareService.recommendProcedures(userId(auth), request);
     }
+    @PostMapping("/meals/recommendations")
+    public MealRecommendationResponse meals(Authentication auth,
+            @Valid @RequestBody MealRecommendationRequest request) {
+        return aiCareService.recommendMeal(userId(auth), request);
+    }
     @PostMapping("/reports")
     public AiReportResponse createReport(Authentication auth, @Valid @RequestBody AiReportRequest request) {
         return aiCareService.createReport(userId(auth), request);

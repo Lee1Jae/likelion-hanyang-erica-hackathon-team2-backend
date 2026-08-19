@@ -313,14 +313,26 @@ GET  /api/v1/ai/conversations/{conversationId}
 
 이미지는 MVP에서 MySQL에 비공개 저장되며 `GET /api/v1/uploads/images/{imageId}`도 Bearer Access Token이 필요합니다. 따라서 프론트는 `imageUrl`을 인증 헤더로 `fetch`한 후 응답 Blob을 `URL.createObjectURL`로 변환해 표시합니다. 업로드 URL을 `POST /api/v1/care/body-checks`의 `originalImageUrl`로 저장합니다.
 
-## 8. AI 추천 시술과 리포트
+## 8. AI 추천 식단·추천 시술·리포트
 
 ```http
+POST /api/v1/ai/meals/recommendations
 POST /api/v1/ai/procedures/recommendations
 POST /api/v1/ai/reports
 GET  /api/v1/ai/reports/{reportId}
 GET  /api/v1/ai/reports/latest
 ```
+
+추천 식단은 프론트가 `date`와 `mealType`만 보내며, 백엔드가 로그인 사용자의 프로필과 해당 날짜까지 최근 14일 식단·활동·컨디션·생리 기록을 조회해 모델에 전달합니다.
+
+```json
+{
+  "date": "2026-08-19",
+  "mealType": "DINNER"
+}
+```
+
+응답은 `title`, `description`, `foods`, `totalKcal`, `totalCarbs`, `totalProtein`, `totalFat`, `reason`, `generatedAt`을 포함합니다. 음식별 값 하나라도 알 수 없으면 해당 영양소 총합도 `null`이며, 백엔드가 음식별 값을 합산해 총합을 계산합니다.
 
 추천 시술은 `bodyCheckId`만 받고, 백엔드가 눈바디 원본 이미지와 프로필·미용 목표·건강정보를 조합해 모델에 전달합니다. 판단할 근거가 없는 가격·횟수·간격은 null입니다. 리포트 생성은 최대 31일 범위의 `from`, `to`를 받고 해당 기간의 컨디션 점수·태그, 식단 합계, 활동, 피부, 생리 기록을 취합합니다. 응답 계약은 `AI_API_DRAFT.md`를 따릅니다. `OPENAI_API_KEY`가 없거나 제공자 장애가 발생하면 가짜 결과 없이 `503 AI_SERVICE_UNAVAILABLE`, 조회할 리포트가 없으면 `404 AI_REPORT_NOT_FOUND`를 반환합니다.
 

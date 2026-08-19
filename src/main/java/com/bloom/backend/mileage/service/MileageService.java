@@ -45,7 +45,7 @@ public class MileageService {
     public MileageRewardResponse attendance(Long userId) {
         LocalDate today = LocalDate.now(SERVICE_ZONE);
         String reference = "ATTENDANCE:" + today;
-        MileageWallet wallet = wallet(userId);
+        MileageWallet wallet = walletForUpdate(userId);
         if (historyRepository.existsByUserIdAndReferenceId(userId, reference)) {
             return new MileageRewardResponse(false, 0, wallet.getBalance(), "ALREADY_REWARDED", null);
         }
@@ -57,7 +57,7 @@ public class MileageService {
     public MileageRewardResponse checkStreak(Long userId) {
         LocalDate today = LocalDate.now(SERVICE_ZONE);
         int streak = calculateStreak(activityRepository.findExerciseDates(userId, today), today);
-        MileageWallet wallet = wallet(userId);
+        MileageWallet wallet = walletForUpdate(userId);
         Optional<Integer> milestone = STREAK_REWARDS.keySet().stream().filter(value -> streak >= value)
                 .sorted(Comparator.reverseOrder())
                 .filter(value -> !historyRepository.existsByUserIdAndReferenceId(userId, "ROUTINE_STREAK:" + value))
@@ -86,8 +86,8 @@ public class MileageService {
                 wallet.getBalance(), reference));
     }
 
-    private MileageWallet wallet(Long userId) {
-        return walletRepository.findByUserId(userId).orElseGet(() ->
+    private MileageWallet walletForUpdate(Long userId) {
+        return walletRepository.findByUserIdForUpdate(userId).orElseGet(() ->
                 walletRepository.save(new MileageWallet(ensureUser(userId))));
     }
 

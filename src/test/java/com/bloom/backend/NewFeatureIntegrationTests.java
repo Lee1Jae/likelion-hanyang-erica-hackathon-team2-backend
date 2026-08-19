@@ -42,6 +42,8 @@ class NewFeatureIntegrationTests {
     @Test
     void attendanceIsRewardedOnceAndHistoryIsServerOwned() throws Exception {
         String token = signupAndLogin("mileage@example.com");
+        mockMvc.perform(get("/api/v1/mileage").header("Authorization", "Bearer " + token))
+                .andExpect(status().isOk()).andExpect(jsonPath("$.balance").value(0));
         mockMvc.perform(post("/api/v1/mileage/attendance").header("Authorization", "Bearer " + token))
                 .andExpect(status().isOk()).andExpect(jsonPath("$.rewarded").value(true))
                 .andExpect(jsonPath("$.amount").value(100));
@@ -71,6 +73,11 @@ class NewFeatureIntegrationTests {
                         .header("Authorization", "Bearer " + token).contentType(MediaType.APPLICATION_JSON)
                         .content("{\"from\":\"2026-08-10\",\"to\":\"2026-08-16\"}"))
                 .andExpect(status().isServiceUnavailable());
+        mockMvc.perform(post("/api/v1/ai/meals/recommendations")
+                        .header("Authorization", "Bearer " + token).contentType(MediaType.APPLICATION_JSON)
+                        .content("{\"date\":\"2026-08-19\",\"mealType\":\"DINNER\"}"))
+                .andExpect(status().isServiceUnavailable())
+                .andExpect(jsonPath("$.code").value("AI_SERVICE_UNAVAILABLE"));
         mockMvc.perform(get("/api/v1/ai/reports/latest").header("Authorization", "Bearer " + token))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.status").value("FAILED"));
