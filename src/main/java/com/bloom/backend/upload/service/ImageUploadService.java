@@ -62,22 +62,6 @@ public class ImageUploadService {
         }
     }
 
-    @Transactional
-    public ImageUploadResponse storeGenerated(Long userId, byte[] data, String contentType, ImagePurpose purpose) {
-        if (data == null || data.length == 0) throw new BusinessException(ErrorCode.AI_SERVICE_UNAVAILABLE);
-        if (data.length > MAX_SIZE) throw new BusinessException(ErrorCode.IMAGE_TOO_LARGE);
-        String normalizedContentType = contentType == null ? "" : contentType.toLowerCase();
-        if (!ALLOWED_TYPES.contains(normalizedContentType) || !matchesSignature(normalizedContentType, data)) {
-            throw new BusinessException(ErrorCode.AI_SERVICE_UNAVAILABLE);
-        }
-        User user = userRepository.findById(userId)
-                .orElseThrow(() -> new BusinessException(ErrorCode.USER_NOT_FOUND));
-        UploadedImage image = imageRepository.save(new UploadedImage(
-                user, purpose, normalizedContentType, data.length, data,
-                Instant.now().plus(365, ChronoUnit.DAYS)));
-        return response(image);
-    }
-
     public UploadedImage get(Long userId, Long imageId) {
         return imageRepository.findByIdAndUserId(imageId, userId)
                 .orElseThrow(() -> new BusinessException(ErrorCode.IMAGE_NOT_FOUND));

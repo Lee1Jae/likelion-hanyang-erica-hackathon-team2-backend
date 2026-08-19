@@ -23,7 +23,7 @@ docker compose up -d
 | OpenAPI JSON | `http://localhost:8080/v3/api-docs` |
 | Health check | `http://localhost:8080/actuator/health` |
 
-운영 배포에서는 `DB_URL`, `DB_USERNAME`, `DB_PASSWORD`, `JWT_SECRET`, `CORS_ALLOWED_ORIGINS`, `PUBLIC_BASE_URL`을 반드시 환경변수로 설정합니다. `PUBLIC_BASE_URL`은 외부 HTTPS 백엔드 주소입니다. AI 기능에는 `OPENAI_API_KEY`가 추가로 필요하며 텍스트 모델은 `OPENAI_MODEL`, 눈바디 이미지 편집 모델은 `OPENAI_IMAGE_MODEL`로 변경할 수 있습니다. 기본값은 각각 `gpt-5.6-terra`, `gpt-image-2`입니다. Railway는 저장소 루트의 `Dockerfile`과 `railway.json`을 사용하며, `PORT` 환경변수는 자동 반영됩니다.
+운영 배포에서는 `DB_URL`, `DB_USERNAME`, `DB_PASSWORD`, `JWT_SECRET`, `CORS_ALLOWED_ORIGINS`, `PUBLIC_BASE_URL`을 반드시 환경변수로 설정합니다. `PUBLIC_BASE_URL`은 외부 HTTPS 백엔드 주소입니다. AI 기능에는 `OPENAI_API_KEY`가 추가로 필요하며 텍스트 모델은 `OPENAI_MODEL`로 변경할 수 있습니다. 기본값은 `gpt-5.6-terra`입니다. Railway는 저장소 루트의 `Dockerfile`과 `railway.json`을 사용하며, `PORT` 환경변수는 자동 반영됩니다.
 
 기본 로컬 DB 계정은 `compose.yml`과 일치합니다. 운영 환경에서는 `.env.example`을 참고해 비밀값을 환경변수로 주입하며 실제 `.env`는 커밋하지 않습니다.
 
@@ -81,7 +81,7 @@ docker compose up -d
 | AI 챗봇 | POST / GET | `/ai/chat`, `/ai/conversations...` | ✅ 완료 |
 | AI 리포트 | POST / GET | `/ai/reports...` | ✅ 완료 |
 | AI 추천 시술 | POST | `/ai/procedures/recommendations` | ✅ 완료 |
-| 눈바디 AI 예상 이미지 | POST | `/care/body-checks/{bodyCheckId}/analysis` | ✅ 완료 |
+| 눈바디 AI 예상 이미지 | - | - | 제외 (원본 사진 기록만 유지) |
 
 `/auth/reissue`, `/auth/logout`, `/diaries/{date}`는 기존 프론트·테스트 호환을 위해 당분간 유지합니다. 프론트 전환이 끝난 뒤 제거 여부를 팀에서 결정합니다.
 
@@ -251,7 +251,7 @@ erDiagram
 - `USERS` ↔ `REFRESH_TOKENS`: 사용자 한 명이 로그인 세션별 Refresh Token을 여러 개 보유 가능
 - `USERS` ↔ `DIARIES`: 사용자별 하루 한 개의 다이어리
 - `DIARIES` ↔ `MEALS`, `ACTIVITIES`: 하루 기록에 식단과 활동을 여러 개 저장
-- `USERS` ↔ `BODY_CHECKS`: 사용자별 눈바디 사진 기록. AI 예상 이미지는 추후 같은 기록에 연결
+- `USERS` ↔ `BODY_CHECKS`: 사용자별 눈바디 원본 사진과 촬영일 기록
 
 ## 합의된 일일 기록 JSON 계약
 
@@ -338,7 +338,7 @@ AI 기능은 [AI API 구현 명세](docs/AI_API_DRAFT.md)에 공개 계약과 �
 
 1. AI 식단 분석 구현: 사진/텍스트 개별 입력, `DRAFT` 편집 후 `기록하기`로 식단 저장
 2. AI 식단 분석의 타임아웃·재시도와 최소 개인화 정보
-3. 눈바디 실제 파일 저장소와 AI 예상 이미지 생성 API
+3. 눈바디 이미지는 현재 서버 DB에 보관하므로 운영 전용 객체 저장소 전환 여부
 4. 추천 시술의 필드와 추천 근거. 실제 병원·예약·결제는 제외
 5. 태그와 목표·건강 문제 enum의 실제 허용값
 6. 커뮤니티·광고·결제·마일리지·구독·병원 예약·제휴 구매·알림은 이번 MVP 범위에서 제외

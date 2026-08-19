@@ -52,26 +52,6 @@ public class BodyCheckService {
     }
 
     @Transactional
-    public AnalysisTarget startAnalysis(Long userId, Long bodyCheckId) {
-        BodyCheck bodyCheck = find(userId, bodyCheckId);
-        bodyCheck.startAnalysis();
-        return new AnalysisTarget(bodyCheck.getId(), bodyCheck.getOriginalImageUrl());
-    }
-
-    @Transactional
-    public BodyCheckResponse completeAnalysis(Long userId, Long bodyCheckId, String expectedImageUrl) {
-        BodyCheck bodyCheck = find(userId, bodyCheckId);
-        bodyCheck.completeAnalysis(expectedImageUrl);
-        return BodyCheckResponse.from(bodyCheck);
-    }
-
-    @Transactional
-    public void failAnalysis(Long userId, Long bodyCheckId) {
-        BodyCheck bodyCheck = find(userId, bodyCheckId);
-        bodyCheck.failAnalysis();
-    }
-
-    @Transactional
     public void delete(Long userId, Long bodyCheckId) {
         bodyCheckRepository.delete(find(userId, bodyCheckId));
     }
@@ -80,6 +60,4 @@ public class BodyCheckService {
         return bodyCheckRepository.findByIdAndUserId(bodyCheckId, userId)
                 .orElseThrow(() -> new BusinessException(ErrorCode.BODY_CHECK_NOT_FOUND));
     }
-
-    public record AnalysisTarget(Long bodyCheckId, String originalImageUrl) {}
 }

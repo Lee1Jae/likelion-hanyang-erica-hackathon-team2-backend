@@ -113,17 +113,6 @@ POST /api/v1/ai/nutrition/analyses/{analysisId}/record
 DELETE /api/v1/ai/nutrition/analyses/{analysisId}
 ```
 
-### 눈바디 예상 이미지 요청
-
-```http
-POST /api/v1/care/body-checks/{bodyCheckId}/analysis
-```
-
-요청 처리 중 DB 상태는 `ANALYZING`이며, 동기 호출 성공 시 `COMPLETED` 상태의 `BodyCheckResponse`와
-`expectedImageUrl`을 반환합니다. 생성 이미지는 인증이 필요한 비공개 이미지 URL입니다. 호출 실패 시
-DB 상태를 `FAILED`로 저장하고 `503 AI_SERVICE_UNAVAILABLE`을 반환합니다. AI 이미지는 실제 변화를
-보장하거나 의료 결과를 예측하는 자료가 아니라 보수적인 웰니스 변화 참고 이미지로 취급합니다.
-
 ### 추천 시술
 
 ```http
@@ -231,13 +220,12 @@ GET  /api/v1/ai/conversations/{conversationId}
 
 ## 2. 백엔드 ↔ AI 제공자
 
-백엔드는 프론트 요청을 인증한 후 텍스트 기능은 OpenAI Responses API, 눈바디 예상 이미지 편집은 Image Edits API를 서버에서 호출합니다. API 키는 응답이나 저장소에 노출하지 않고 배포 환경변수로만 관리합니다.
+백엔드는 프론트 요청을 인증한 후 텍스트 기능을 OpenAI Responses API로 호출합니다. API 키는 응답이나 저장소에 노출하지 않고 배포 환경변수로만 관리합니다. 눈바디 예상 이미지 생성 기능은 MVP 범위에서 제거했습니다.
 
 | 설정 | 환경변수 | 기본값 |
 | --- | --- | --- |
 | API 키 | `OPENAI_API_KEY` | 없음 |
 | 모델 | `OPENAI_MODEL` | `gpt-5.6-terra` |
-| 이미지 편집 모델 | `OPENAI_IMAGE_MODEL` | `gpt-image-2` |
 | Base URL | `OPENAI_BASE_URL` | `https://api.openai.com/v1` |
 | 연결 제한시간 | `OPENAI_CONNECT_TIMEOUT_SECONDS` | 10초 |
 | 응답 제한시간 | `OPENAI_READ_TIMEOUT_SECONDS` | 120초 |

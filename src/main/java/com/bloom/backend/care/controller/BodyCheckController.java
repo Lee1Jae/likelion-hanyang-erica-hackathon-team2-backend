@@ -3,8 +3,9 @@ package com.bloom.backend.care.controller;
 import com.bloom.backend.care.dto.BodyCheckCreateRequest;
 import com.bloom.backend.care.dto.BodyCheckPatchRequest;
 import com.bloom.backend.care.dto.BodyCheckResponse;
-import com.bloom.backend.care.service.BodyCheckAnalysisService;
 import com.bloom.backend.care.service.BodyCheckService;
+import com.bloom.backend.global.error.BusinessException;
+import com.bloom.backend.global.error.ErrorCode;
 import jakarta.validation.Valid;
 import java.util.List;
 import org.springframework.http.HttpStatus;
@@ -23,12 +24,9 @@ import org.springframework.web.bind.annotation.RestController;
 @RequestMapping("/api/v1/care/body-checks")
 public class BodyCheckController {
     private final BodyCheckService bodyCheckService;
-    private final BodyCheckAnalysisService bodyCheckAnalysisService;
 
-    public BodyCheckController(BodyCheckService bodyCheckService,
-                               BodyCheckAnalysisService bodyCheckAnalysisService) {
+    public BodyCheckController(BodyCheckService bodyCheckService) {
         this.bodyCheckService = bodyCheckService;
-        this.bodyCheckAnalysisService = bodyCheckAnalysisService;
     }
 
     @PostMapping
@@ -60,8 +58,8 @@ public class BodyCheckController {
     }
 
     @PostMapping("/{bodyCheckId}/analysis")
-    public BodyCheckResponse analyze(Authentication auth, @PathVariable Long bodyCheckId) {
-        return bodyCheckAnalysisService.analyze(userId(auth), bodyCheckId);
+    public BodyCheckResponse analyzeRemoved(Authentication auth, @PathVariable Long bodyCheckId) {
+        throw new BusinessException(ErrorCode.BODY_CHECK_ANALYSIS_REMOVED);
     }
 
     private Long userId(Authentication authentication) {

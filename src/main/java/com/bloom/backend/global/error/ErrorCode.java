@@ -16,6 +16,7 @@ public enum ErrorCode {
     ACTIVITY_NOT_FOUND(HttpStatus.NOT_FOUND, "활동 기록을 찾을 수 없습니다."),
     BODY_CHECK_NOT_FOUND(HttpStatus.NOT_FOUND, "눈바디 기록을 찾을 수 없습니다."),
     BODY_CHECK_PATCH_EMPTY(HttpStatus.BAD_REQUEST, "수정할 눈바디 정보를 한 개 이상 입력해 주세요."),
+    BODY_CHECK_ANALYSIS_REMOVED(HttpStatus.GONE, "눈바디 예상 이미지 생성 기능은 제공하지 않습니다."),
     PERIOD_NOT_FOUND(HttpStatus.NOT_FOUND, "생리 기록을 찾을 수 없습니다."),
     PERIOD_PATCH_EMPTY(HttpStatus.BAD_REQUEST, "수정할 생리 기록을 한 개 이상 입력해 주세요."),
     IMAGE_EMPTY(HttpStatus.BAD_REQUEST, "이미지 파일을 선택해 주세요."),

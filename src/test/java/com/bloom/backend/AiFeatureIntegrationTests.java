@@ -5,7 +5,6 @@ import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.*;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.*;
-import static org.hamcrest.Matchers.startsWith;
 
 import com.bloom.backend.ai.client.OpenAiResponsesClient;
 import com.fasterxml.jackson.databind.*;
@@ -15,7 +14,6 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureMockMvc;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.http.MediaType;
-import org.springframework.mock.web.MockMultipartFile;
 import org.springframework.test.annotation.DirtiesContext;
 import org.springframework.test.context.bean.override.mockito.MockitoBean;
 import org.springframework.test.web.servlet.MockMvc;
@@ -32,8 +30,6 @@ class AiFeatureIntegrationTests {
     void configureAiResponses() throws Exception {
         when(aiClient.model()).thenReturn("test-model");
         when(aiClient.text(anyString(), any())).thenReturn("오늘은 가벼운 걷기와 스트레칭을 추천해요.");
-        when(aiClient.editImage(anyString(), anyString())).thenReturn(new byte[]{
-                (byte) 0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a, 1, 2, 3});
         when(aiClient.structured(anyString(), any(), eq("nutrition_analysis"), any(JsonNode.class)))
                 .thenReturn(objectMapper.readTree("""
                         {"foods":[{"foodName":"현미밥","amount":150,"amountUnit":"g","kcal":310,
@@ -138,43 +134,6 @@ class AiFeatureIntegrationTests {
         verify(aiClient).structured(anyString(), argThat(input -> input instanceof String
                         && ((String) input).startsWith("추천 입력(JSON): ")),
                 eq("meal_recommendations"), any(JsonNode.class));
-    }
-
-    @Test
-    void bodyCheckAnalysisEditsAndPrivatelyStoresExpectedImage() throws Exception {
-        String token = signupAndLogin("ai-body-check@example.com");
-        MockMultipartFile original = new MockMultipartFile("file", "body.jpg", "image/jpeg",
-                new byte[]{(byte) 0xff, (byte) 0xd8, 1, 2, 3});
-        String uploaded = mockMvc.perform(multipart("/api/v1/uploads/images")
-                        .file(original).param("purpose", "BODY_CHECK")
-                        .header("X-Forwarded-Proto", "https")
-                        .header("X-Forwarded-Host", "api.bloom.test")
-                        .header("X-Forwarded-Port", "443")
-                        .header("Authorization", "Bearer " + token))
-                .andExpect(status().isCreated()).andReturn().getResponse().getContentAsString();
-        String originalImageUrl = objectMapper.readTree(uploaded).get("imageUrl").asText();
-        String created = mockMvc.perform(post("/api/v1/care/body-checks")
-                        .header("Authorization", "Bearer " + token).contentType(MediaType.APPLICATION_JSON)
-                        .content(objectMapper.writeValueAsString(java.util.Map.of(
-                                "recordedDate", "2026-08-19", "originalImageUrl", originalImageUrl))))
-                .andExpect(status().isCreated()).andReturn().getResponse().getContentAsString();
-        long bodyCheckId = objectMapper.readTree(created).get("bodyCheckId").asLong();
-
-        String analyzed = mockMvc.perform(post("/api/v1/care/body-checks/{id}/analysis", bodyCheckId)
-                        .header("X-Forwarded-Proto", "https")
-                        .header("X-Forwarded-Host", "api.bloom.test")
-                        .header("X-Forwarded-Port", "443")
-                        .header("Authorization", "Bearer " + token))
-                .andExpect(status().isOk())
-                .andExpect(jsonPath("$.analysisStatus").value("COMPLETED"))
-                .andExpect(jsonPath("$.expectedImageUrl")
-                        .value(startsWith("https://api.bloom.test/api/v1/uploads/images/")))
-                .andReturn().getResponse().getContentAsString();
-
-        String expectedImageUrl = objectMapper.readTree(analyzed).get("expectedImageUrl").asText();
-        mockMvc.perform(get(expectedImageUrl.substring(expectedImageUrl.indexOf("/api/v1")))
-                        .header("Authorization", "Bearer " + token))
-                .andExpect(status().isOk()).andExpect(content().contentType("image/png"));
     }
 
     @Test

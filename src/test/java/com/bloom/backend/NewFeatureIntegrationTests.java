@@ -72,12 +72,8 @@ class NewFeatureIntegrationTests {
         long bodyCheckId = objectMapper.readTree(bodyCheck).get("bodyCheckId").asLong();
         mockMvc.perform(post("/api/v1/care/body-checks/{bodyCheckId}/analysis", bodyCheckId)
                         .header("Authorization", "Bearer " + token))
-                .andExpect(status().isServiceUnavailable())
-                .andExpect(jsonPath("$.code").value("AI_SERVICE_UNAVAILABLE"));
-        mockMvc.perform(get("/api/v1/care/body-checks/{bodyCheckId}", bodyCheckId)
-                        .header("Authorization", "Bearer " + token))
-                .andExpect(status().isOk())
-                .andExpect(jsonPath("$.analysisStatus").value("FAILED"));
+                .andExpect(status().isGone())
+                .andExpect(jsonPath("$.code").value("BODY_CHECK_ANALYSIS_REMOVED"));
         mockMvc.perform(post("/api/v1/ai/procedures/recommendations")
                         .header("Authorization", "Bearer " + token).contentType(MediaType.APPLICATION_JSON)
                         .content("{\"bodyCheckId\":" + bodyCheckId + "}"))
