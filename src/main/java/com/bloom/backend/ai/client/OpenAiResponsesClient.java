@@ -5,9 +5,14 @@ import com.bloom.backend.global.error.BusinessException;
 import com.bloom.backend.global.error.ErrorCode;
 import com.fasterxml.jackson.databind.*;
 import java.util.*;
+import org.springframework.core.io.ByteArrayResource;
+import org.springframework.http.HttpEntity;
+import org.springframework.http.HttpHeaders;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.http.MediaType;
+import org.springframework.util.LinkedMultiValueMap;
+import org.springframework.util.MultiValueMap;
 import org.springframework.stereotype.Component;
 import org.springframework.web.client.*;
 
@@ -41,6 +46,36 @@ public class OpenAiResponsesClient {
 
     public byte[] editImage(String prompt, String imageInput) {
         requireConfigured();
+        if (imageInput != null && imageInput.startsWith("data:")) {
+            return editUploadedImage(prompt, decodeDataImage(imageInput));
+        }
+        return editRemoteImage(prompt, imageInput);
+    }
+
+    private byte[] editUploadedImage(String prompt, ImagePayload image) {
+        MultiValueMap<String, Object> form = new LinkedMultiValueMap<>();
+        form.add("model", properties.getImageModel());
+        form.add("prompt", prompt);
+        form.add("quality", "low");
+        form.add("size", "1024x1024");
+        form.add("output_format", "png");
+
+        HttpHeaders imageHeaders = new HttpHeaders();
+        imageHeaders.setContentType(MediaType.parseMediaType(image.contentType()));
+        ByteArrayResource resource = new ByteArrayResource(image.data()) {
+            @Override
+            public String getFilename() {
+                return "body-check." + image.extension();
+            }
+        };
+        form.add("image[]", new HttpEntity<>(resource, imageHeaders));
+
+        JsonNode response = postImageEdit(form);
+        String encoded = response.path("data").path(0).path("b64_json").asText(null);
+        return decodeGeneratedImage(encoded, properties.getImageModel());
+    }
+
+    private byte[] editRemoteImage(String prompt, String imageInput) {
         Map<String, Object> body = new LinkedHashMap<>();
         body.put("model", properties.getModel());
         body.put("input", List.of(Map.of(
@@ -58,15 +93,63 @@ public class OpenAiResponsesClient {
             if (!"image_generation_call".equals(item.path("type").asText())) continue;
             String encoded = item.path("result").asText(null);
             if (encoded == null || encoded.isBlank()) continue;
-            try {
-                return Base64.getDecoder().decode(encoded);
-            } catch (IllegalArgumentException exception) {
-                log.warn("OpenAI image output was not valid base64: model={}", properties.getModel());
-                throw new BusinessException(ErrorCode.AI_SERVICE_UNAVAILABLE);
-            }
+            return decodeGeneratedImage(encoded, properties.getModel());
         }
         log.warn("OpenAI response did not contain image_generation_call: model={}", properties.getModel());
         throw new BusinessException(ErrorCode.AI_SERVICE_UNAVAILABLE);
+    }
+
+    private JsonNode postImageEdit(MultiValueMap<String, Object> form) {
+        try {
+            JsonNode response = restClient.post().uri("/images/edits")
+                    .contentType(MediaType.MULTIPART_FORM_DATA)
+                    .header("Authorization", "Bearer " + properties.getApiKey())
+                    .body(form).retrieve().body(JsonNode.class);
+            if (response != null) return response;
+            throw new BusinessException(ErrorCode.AI_SERVICE_UNAVAILABLE);
+        } catch (HttpClientErrorException exception) {
+            log.warn("OpenAI rejected request: status={}, code={}, model={}, operation={}",
+                    exception.getStatusCode(), providerErrorCode(exception.getResponseBodyAsString()),
+                    properties.getImageModel(), "body_check_image");
+            throw new BusinessException(ErrorCode.AI_SERVICE_UNAVAILABLE);
+        } catch (RestClientException exception) {
+            log.warn("OpenAI image request failed: type={}, model={}, operation={}",
+                    exception.getClass().getSimpleName(), properties.getImageModel(), "body_check_image");
+            throw new BusinessException(ErrorCode.AI_SERVICE_UNAVAILABLE);
+        }
+    }
+
+    private ImagePayload decodeDataImage(String imageInput) {
+        int comma = imageInput.indexOf(',');
+        if (comma < 0 || !imageInput.substring(0, comma).endsWith(";base64")) {
+            throw new BusinessException(ErrorCode.AI_SERVICE_UNAVAILABLE);
+        }
+        String contentType = imageInput.substring("data:".length(), imageInput.indexOf(';'));
+        String extension = switch (contentType) {
+            case "image/jpeg" -> "jpg";
+            case "image/png" -> "png";
+            case "image/webp" -> "webp";
+            default -> throw new BusinessException(ErrorCode.AI_SERVICE_UNAVAILABLE);
+        };
+        try {
+            return new ImagePayload(contentType, extension,
+                    Base64.getDecoder().decode(imageInput.substring(comma + 1)));
+        } catch (IllegalArgumentException exception) {
+            throw new BusinessException(ErrorCode.AI_SERVICE_UNAVAILABLE);
+        }
+    }
+
+    private byte[] decodeGeneratedImage(String encoded, String model) {
+        if (encoded == null || encoded.isBlank()) {
+            log.warn("OpenAI response did not contain generated image data: model={}", model);
+            throw new BusinessException(ErrorCode.AI_SERVICE_UNAVAILABLE);
+        }
+        try {
+            return Base64.getDecoder().decode(encoded);
+        } catch (IllegalArgumentException exception) {
+            log.warn("OpenAI image output was not valid base64: model={}", model);
+            throw new BusinessException(ErrorCode.AI_SERVICE_UNAVAILABLE);
+        }
     }
 
     public String model() { return properties.getModel(); }
@@ -144,4 +227,6 @@ public class OpenAiResponsesClient {
             return "unknown";
         }
     }
+
+    private record ImagePayload(String contentType, String extension, byte[] data) {}
 }

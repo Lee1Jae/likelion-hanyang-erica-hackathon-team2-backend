@@ -29,15 +29,17 @@ class OpenAiResponsesClientTests {
         OpenAiResponsesClient client = new OpenAiResponsesClient(
                 builder.build(), properties, new ObjectMapper());
         byte[] expected = new byte[]{(byte) 0x89, 0x50, 0x4e, 0x47};
+        properties.setImageModel("gpt-image-2");
         String response = """
-                {"output":[{"type":"image_generation_call","result":"%s"}]}
+                {"data":[{"b64_json":"%s"}]}
                 """.formatted(Base64.getEncoder().encodeToString(expected));
 
-        server.expect(requestTo("https://api.openai.test/v1/responses"))
+        server.expect(requestTo("https://api.openai.test/v1/images/edits"))
                 .andExpect(header("Authorization", "Bearer test-key"))
-                .andExpect(content().string(containsString("\"type\":\"input_image\"")))
-                .andExpect(content().string(containsString("\"type\":\"image_generation\"")))
-                .andExpect(content().string(containsString("\"action\":\"edit\"")))
+                .andExpect(content().string(containsString("name=\"model\"")))
+                .andExpect(content().string(containsString("gpt-image-2")))
+                .andExpect(content().string(containsString("name=\"image[]\"")))
+                .andExpect(content().string(containsString("subtle edit")))
                 .andRespond(withSuccess(response.getBytes(StandardCharsets.UTF_8), MediaType.APPLICATION_JSON));
 
         byte[] actual = client.editImage("subtle edit", "data:image/jpeg;base64,/9g=");

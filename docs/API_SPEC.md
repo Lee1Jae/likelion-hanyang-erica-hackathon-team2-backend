@@ -258,8 +258,8 @@ DELETE /api/v1/care/body-checks/{bodyCheckId}
 프론트는 먼저 `POST /api/v1/uploads/images`에 파일과 `purpose=BODY_CHECK`를 보내고,
 응답의 인증 이미지 URL을 `originalImageUrl`로 저장합니다. 프론트가 `blob:` URL이나 로컬 경로를 눈바디 API에 직접 보내면 안 됩니다.
 
-`POST /api/v1/care/body-checks/{bodyCheckId}/analysis`를 호출하면 원본을 OpenAI Responses API의
-이미지 편집 도구에 전달하고 생성 결과를 같은 비공개 이미지 저장소에 보관합니다. 성공 응답은
+`POST /api/v1/care/body-checks/{bodyCheckId}/analysis`를 호출하면 원본을 OpenAI Image Edits API의
+`gpt-image-2`에 전달하고 생성 결과를 같은 비공개 이미지 저장소에 보관합니다. 성공 응답은
 `analysisStatus=COMPLETED`와 `expectedImageUrl`을 포함합니다. 실패하면 상태를 `FAILED`로 저장하고
 `503 AI_SERVICE_UNAVAILABLE`을 반환합니다. 원본 URL을 수정하면 기존 예상 이미지는 무효화되어
 `expectedImageUrl=null`, `analysisStatus=NOT_REQUESTED`로 초기화됩니다.
@@ -295,8 +295,9 @@ GET  /api/v1/ai/conversations/{conversationId}
 
 ## 6. AI 운영 계약
 
-- 기본 모델: `OPENAI_MODEL` 환경변수, 현재 기본값 `gpt-5.6-terra`
-- 호출 방식: OpenAI Responses API, 구조화 JSON 출력
+- 텍스트 기본 모델: `OPENAI_MODEL` 환경변수, 현재 기본값 `gpt-5.6-terra`
+- 눈바디 이미지 편집 모델: `OPENAI_IMAGE_MODEL` 환경변수, 현재 기본값 `gpt-image-2`
+- 호출 방식: 채팅·식단·시술·리포트는 OpenAI Responses API와 구조화 JSON, 눈바디 예상 이미지는 Image Edits API
 - 제한시간: 연결 10초, 응답 120초
 - 재시도: 네트워크·서버 장애에 한해 1회
 - 개인정보: 이메일·닉네임·원본 생년월일은 모델에 보내지 않고 나이·산후 경과일과 필요한 건강 기록만 전달
