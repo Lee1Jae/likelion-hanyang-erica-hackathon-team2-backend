@@ -2,6 +2,7 @@ package com.bloom.backend;
 
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.*;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.*;
+import static org.hamcrest.Matchers.startsWith;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 import org.junit.jupiter.api.Test;
@@ -13,7 +14,7 @@ import org.springframework.mock.web.MockMultipartFile;
 import org.springframework.test.annotation.DirtiesContext;
 import org.springframework.test.web.servlet.MockMvc;
 
-@SpringBootTest
+@SpringBootTest(properties = "app.public-base-url=https://api.bloom.test")
 @AutoConfigureMockMvc
 @DirtiesContext(classMode = DirtiesContext.ClassMode.AFTER_EACH_TEST_METHOD)
 class NewFeatureIntegrationTests {
@@ -27,8 +28,13 @@ class NewFeatureIntegrationTests {
                 new byte[]{(byte) 0xff, (byte) 0xd8, 1, 2, 3});
         String response = mockMvc.perform(multipart("/api/v1/uploads/images")
                         .file(image).param("purpose", "BODY_CHECK")
+                        .header("X-Forwarded-Proto", "https")
+                        .header("X-Forwarded-Host", "api.bloom.test")
+                        .header("X-Forwarded-Port", "443")
                         .header("Authorization", "Bearer " + token))
                 .andExpect(status().isCreated())
+                .andExpect(jsonPath("$.imageUrl")
+                        .value(startsWith("https://api.bloom.test/api/v1/uploads/images/")))
                 .andExpect(jsonPath("$.contentType").value("image/jpeg"))
                 .andExpect(jsonPath("$.size").value(5))
                 .andReturn().getResponse().getContentAsString();
@@ -64,6 +70,14 @@ class NewFeatureIntegrationTests {
                         .content("{\"recordedDate\":\"2026-08-17\",\"originalImageUrl\":\"https://example.com/body.jpg\"}"))
                 .andExpect(status().isCreated()).andReturn().getResponse().getContentAsString();
         long bodyCheckId = objectMapper.readTree(bodyCheck).get("bodyCheckId").asLong();
+        mockMvc.perform(post("/api/v1/care/body-checks/{bodyCheckId}/analysis", bodyCheckId)
+                        .header("Authorization", "Bearer " + token))
+                .andExpect(status().isServiceUnavailable())
+                .andExpect(jsonPath("$.code").value("AI_SERVICE_UNAVAILABLE"));
+        mockMvc.perform(get("/api/v1/care/body-checks/{bodyCheckId}", bodyCheckId)
+                        .header("Authorization", "Bearer " + token))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.analysisStatus").value("FAILED"));
         mockMvc.perform(post("/api/v1/ai/procedures/recommendations")
                         .header("Authorization", "Bearer " + token).contentType(MediaType.APPLICATION_JSON)
                         .content("{\"bodyCheckId\":" + bodyCheckId + "}"))

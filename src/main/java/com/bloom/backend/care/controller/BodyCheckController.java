@@ -3,6 +3,7 @@ package com.bloom.backend.care.controller;
 import com.bloom.backend.care.dto.BodyCheckCreateRequest;
 import com.bloom.backend.care.dto.BodyCheckPatchRequest;
 import com.bloom.backend.care.dto.BodyCheckResponse;
+import com.bloom.backend.care.service.BodyCheckAnalysisService;
 import com.bloom.backend.care.service.BodyCheckService;
 import jakarta.validation.Valid;
 import java.util.List;
@@ -22,9 +23,12 @@ import org.springframework.web.bind.annotation.RestController;
 @RequestMapping("/api/v1/care/body-checks")
 public class BodyCheckController {
     private final BodyCheckService bodyCheckService;
+    private final BodyCheckAnalysisService bodyCheckAnalysisService;
 
-    public BodyCheckController(BodyCheckService bodyCheckService) {
+    public BodyCheckController(BodyCheckService bodyCheckService,
+                               BodyCheckAnalysisService bodyCheckAnalysisService) {
         this.bodyCheckService = bodyCheckService;
+        this.bodyCheckAnalysisService = bodyCheckAnalysisService;
     }
 
     @PostMapping
@@ -53,6 +57,11 @@ public class BodyCheckController {
     public ResponseEntity<Void> delete(Authentication auth, @PathVariable Long bodyCheckId) {
         bodyCheckService.delete(userId(auth), bodyCheckId);
         return ResponseEntity.noContent().build();
+    }
+
+    @PostMapping("/{bodyCheckId}/analysis")
+    public BodyCheckResponse analyze(Authentication auth, @PathVariable Long bodyCheckId) {
+        return bodyCheckAnalysisService.analyze(userId(auth), bodyCheckId);
     }
 
     private Long userId(Authentication authentication) {

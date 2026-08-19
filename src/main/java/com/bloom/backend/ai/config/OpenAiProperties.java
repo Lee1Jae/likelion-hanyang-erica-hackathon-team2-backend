@@ -8,7 +8,7 @@ public class OpenAiProperties {
     private String baseUrl = "https://api.openai.com/v1";
     private String model = "gpt-5.6-terra";
     private int connectTimeoutSeconds = 10;
-    private int readTimeoutSeconds = 60;
+    private int readTimeoutSeconds = 120;
 
     public String getApiKey() { return apiKey; }
     public void setApiKey(String apiKey) { this.apiKey = apiKey; }

@@ -258,7 +258,11 @@ DELETE /api/v1/care/body-checks/{bodyCheckId}
 프론트는 먼저 `POST /api/v1/uploads/images`에 파일과 `purpose=BODY_CHECK`를 보내고,
 응답의 인증 이미지 URL을 `originalImageUrl`로 저장합니다. 프론트가 `blob:` URL이나 로컬 경로를 눈바디 API에 직접 보내면 안 됩니다.
 
-AI 예상 이미지는 후순위입니다. 응답의 `expectedImageUrl`은 구현 전까지 null이고 `analysisStatus`는 `NOT_REQUESTED`입니다.
+`POST /api/v1/care/body-checks/{bodyCheckId}/analysis`를 호출하면 원본을 OpenAI Responses API의
+이미지 편집 도구에 전달하고 생성 결과를 같은 비공개 이미지 저장소에 보관합니다. 성공 응답은
+`analysisStatus=COMPLETED`와 `expectedImageUrl`을 포함합니다. 실패하면 상태를 `FAILED`로 저장하고
+`503 AI_SERVICE_UNAVAILABLE`을 반환합니다. 원본 URL을 수정하면 기존 예상 이미지는 무효화되어
+`expectedImageUrl=null`, `analysisStatus=NOT_REQUESTED`로 초기화됩니다.
 
 ## 5. AI 채팅 계약
 
@@ -293,11 +297,11 @@ GET  /api/v1/ai/conversations/{conversationId}
 
 - 기본 모델: `OPENAI_MODEL` 환경변수, 현재 기본값 `gpt-5.6-terra`
 - 호출 방식: OpenAI Responses API, 구조화 JSON 출력
-- 제한시간: 연결 10초, 응답 60초
+- 제한시간: 연결 10초, 응답 120초
 - 재시도: 네트워크·서버 장애에 한해 1회
 - 개인정보: 이메일·닉네임·원본 생년월일은 모델에 보내지 않고 나이·산후 경과일과 필요한 건강 기록만 전달
 - 실패 정책: 가짜 결과를 만들지 않고 503, 리포트는 `FAILED`, 식단은 직접 입력 가능 상태로 저장
-- 미구현: 눈바디 예상 변화 이미지 생성, 식약처 데이터 API 연결
+- 미구현: 식약처 데이터 API 연결
 
 ## 7. 이미지 업로드
 
@@ -312,6 +316,10 @@ GET  /api/v1/ai/conversations/{conversationId}
 ```
 
 이미지는 MVP에서 MySQL에 비공개 저장되며 `GET /api/v1/uploads/images/{imageId}`도 Bearer Access Token이 필요합니다. 따라서 프론트는 `imageUrl`을 인증 헤더로 `fetch`한 후 응답 Blob을 `URL.createObjectURL`로 변환해 표시합니다. 업로드 URL을 `POST /api/v1/care/body-checks`의 `originalImageUrl`로 저장합니다.
+
+배포 환경은 `PUBLIC_BASE_URL`을 외부 HTTPS 백엔드 주소로 설정합니다. 이 값을 기준으로 업로드 URL을
+생성하므로 HTTPS 프론트에서 Mixed Content가 발생하지 않습니다. 값이 없으면 요청 주소와 프록시 전달
+헤더를 기준으로 URL을 생성합니다.
 
 ## 8. AI 추천 식단·추천 시술·리포트
 

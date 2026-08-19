@@ -13,9 +13,10 @@ import java.net.URI;
 import java.nio.charset.StandardCharsets;
 import java.time.Instant;
 import java.time.temporal.ChronoUnit;
-import java.util.Base64;
 import java.util.Arrays;
+import java.util.Base64;
 import java.util.Set;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.multipart.MultipartFile;
@@ -28,10 +29,13 @@ public class ImageUploadService {
     private static final Set<String> ALLOWED_TYPES = Set.of("image/jpeg", "image/png", "image/webp");
     private final UploadedImageRepository imageRepository;
     private final UserRepository userRepository;
+    private final String publicBaseUrl;
 
-    public ImageUploadService(UploadedImageRepository imageRepository, UserRepository userRepository) {
+    public ImageUploadService(UploadedImageRepository imageRepository, UserRepository userRepository,
+                              @Value("${app.public-base-url:}") String publicBaseUrl) {
         this.imageRepository = imageRepository;
         this.userRepository = userRepository;
+        this.publicBaseUrl = publicBaseUrl == null ? "" : publicBaseUrl.replaceAll("/+$", "");
     }
 
     @Transactional
@@ -52,12 +56,26 @@ public class ImageUploadService {
             UploadedImage image = imageRepository.save(new UploadedImage(
                     user, purpose, contentType.toLowerCase(), file.getSize(), data,
                     Instant.now().plus(365, ChronoUnit.DAYS)));
-            String imageUrl = ServletUriComponentsBuilder.fromCurrentContextPath()
-                    .path("/api/v1/uploads/images/").path(image.getId().toString()).toUriString();
-            return new ImageUploadResponse(imageUrl, image.getContentType(), image.getSize());
+            return response(image);
         } catch (IOException exception) {
             throw new BusinessException(ErrorCode.INTERNAL_SERVER_ERROR);
         }
+    }
+
+    @Transactional
+    public ImageUploadResponse storeGenerated(Long userId, byte[] data, String contentType, ImagePurpose purpose) {
+        if (data == null || data.length == 0) throw new BusinessException(ErrorCode.AI_SERVICE_UNAVAILABLE);
+        if (data.length > MAX_SIZE) throw new BusinessException(ErrorCode.IMAGE_TOO_LARGE);
+        String normalizedContentType = contentType == null ? "" : contentType.toLowerCase();
+        if (!ALLOWED_TYPES.contains(normalizedContentType) || !matchesSignature(normalizedContentType, data)) {
+            throw new BusinessException(ErrorCode.AI_SERVICE_UNAVAILABLE);
+        }
+        User user = userRepository.findById(userId)
+                .orElseThrow(() -> new BusinessException(ErrorCode.USER_NOT_FOUND));
+        UploadedImage image = imageRepository.save(new UploadedImage(
+                user, purpose, normalizedContentType, data.length, data,
+                Instant.now().plus(365, ChronoUnit.DAYS)));
+        return response(image);
     }
 
     public UploadedImage get(Long userId, Long imageId) {
@@ -78,6 +96,14 @@ public class ImageUploadService {
         } catch (IllegalArgumentException exception) {
             throw new BusinessException(ErrorCode.IMAGE_NOT_FOUND);
         }
+    }
+
+    private ImageUploadResponse response(UploadedImage image) {
+        String imagePath = "/api/v1/uploads/images/" + image.getId();
+        String imageUrl = publicBaseUrl.isBlank()
+                ? ServletUriComponentsBuilder.fromCurrentContextPath().path(imagePath).toUriString()
+                : publicBaseUrl + imagePath;
+        return new ImageUploadResponse(imageUrl, image.getContentType(), image.getSize());
     }
 
     private boolean matchesSignature(String contentType, byte[] data) {

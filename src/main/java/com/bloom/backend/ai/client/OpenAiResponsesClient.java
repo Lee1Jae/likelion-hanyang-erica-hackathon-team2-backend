@@ -39,13 +39,40 @@ public class OpenAiResponsesClient {
         }
     }
 
+    public byte[] editImage(String prompt, String imageInput) {
+        requireConfigured();
+        Map<String, Object> body = new LinkedHashMap<>();
+        body.put("model", properties.getModel());
+        body.put("input", List.of(Map.of(
+                "role", "user",
+                "content", List.of(
+                        Map.of("type", "input_text", "text", prompt),
+                        Map.of("type", "input_image", "image_url", imageInput, "detail", "auto")))));
+        body.put("tools", List.of(Map.of(
+                "type", "image_generation",
+                "action", "edit",
+                "quality", "low")));
+        body.put("store", false);
+        JsonNode response = post(body, "body_check_image");
+        for (JsonNode item : response.path("output")) {
+            if (!"image_generation_call".equals(item.path("type").asText())) continue;
+            String encoded = item.path("result").asText(null);
+            if (encoded == null || encoded.isBlank()) continue;
+            try {
+                return Base64.getDecoder().decode(encoded);
+            } catch (IllegalArgumentException exception) {
+                log.warn("OpenAI image output was not valid base64: model={}", properties.getModel());
+                throw new BusinessException(ErrorCode.AI_SERVICE_UNAVAILABLE);
+            }
+        }
+        log.warn("OpenAI response did not contain image_generation_call: model={}", properties.getModel());
+        throw new BusinessException(ErrorCode.AI_SERVICE_UNAVAILABLE);
+    }
+
     public String model() { return properties.getModel(); }
 
     private String execute(String instructions, Object input, String schemaName, JsonNode schema) {
-        if (!properties.configured()) {
-            log.warn("OpenAI request skipped because OPENAI_API_KEY is not configured");
-            throw new BusinessException(ErrorCode.AI_SERVICE_UNAVAILABLE);
-        }
+        requireConfigured();
         Map<String, Object> body = new LinkedHashMap<>();
         body.put("model", properties.getModel());
         body.put("instructions", instructions);
@@ -56,31 +83,44 @@ public class OpenAiResponsesClient {
             body.put("text", Map.of("format", Map.of(
                     "type", "json_schema", "name", schemaName, "strict", true, "schema", schema)));
         }
+        JsonNode response = post(body, schemaName);
+        String output = extractOutputText(response);
+        if (output != null && !output.isBlank()) return output;
+        log.warn("OpenAI response did not contain output_text: model={}, schema={}",
+                properties.getModel(), schemaName);
+        throw new BusinessException(ErrorCode.AI_SERVICE_UNAVAILABLE);
+    }
+
+    private JsonNode post(Map<String, Object> body, String operation) {
         for (int attempt = 0; attempt < 2; attempt++) {
             try {
                 JsonNode response = restClient.post().uri("/responses")
                         .contentType(MediaType.APPLICATION_JSON)
                         .header("Authorization", "Bearer " + properties.getApiKey())
                         .body(body).retrieve().body(JsonNode.class);
-                String output = extractOutputText(response);
-                if (output != null && !output.isBlank()) return output;
-                log.warn("OpenAI response did not contain output_text: model={}, schema={}",
-                        properties.getModel(), schemaName);
+                if (response != null) return response;
                 throw new BusinessException(ErrorCode.AI_SERVICE_UNAVAILABLE);
             } catch (HttpClientErrorException exception) {
-                log.warn("OpenAI rejected request: status={}, code={}, model={}, schema={}",
+                log.warn("OpenAI rejected request: status={}, code={}, model={}, operation={}",
                         exception.getStatusCode(), providerErrorCode(exception.getResponseBodyAsString()),
-                        properties.getModel(), schemaName);
+                        properties.getModel(), operation);
                 throw new BusinessException(ErrorCode.AI_SERVICE_UNAVAILABLE);
             } catch (RestClientException exception) {
                 if (attempt == 1) {
-                    log.warn("OpenAI request failed after retry: type={}, model={}, schema={}",
-                            exception.getClass().getSimpleName(), properties.getModel(), schemaName);
+                    log.warn("OpenAI request failed after retry: type={}, model={}, operation={}",
+                            exception.getClass().getSimpleName(), properties.getModel(), operation);
                     throw new BusinessException(ErrorCode.AI_SERVICE_UNAVAILABLE);
                 }
             }
         }
         throw new BusinessException(ErrorCode.AI_SERVICE_UNAVAILABLE);
+    }
+
+    private void requireConfigured() {
+        if (!properties.configured()) {
+            log.warn("OpenAI request skipped because OPENAI_API_KEY is not configured");
+            throw new BusinessException(ErrorCode.AI_SERVICE_UNAVAILABLE);
+        }
     }
 
     private String extractOutputText(JsonNode response) {

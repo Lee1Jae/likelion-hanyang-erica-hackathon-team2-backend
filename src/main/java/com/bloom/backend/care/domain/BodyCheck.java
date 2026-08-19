@@ -50,7 +50,26 @@ public class BodyCheck extends BaseTimeEntity {
 
     public void update(LocalDate recordedDate, String originalImageUrl) {
         if (recordedDate != null) this.recordedDate = recordedDate;
-        if (originalImageUrl != null) this.originalImageUrl = originalImageUrl;
+        if (originalImageUrl != null && !originalImageUrl.equals(this.originalImageUrl)) {
+            this.originalImageUrl = originalImageUrl;
+            this.expectedImageUrl = null;
+            this.analysisStatus = BodyCheckStatus.NOT_REQUESTED;
+        }
+    }
+
+    public void startAnalysis() {
+        this.expectedImageUrl = null;
+        this.analysisStatus = BodyCheckStatus.ANALYZING;
+    }
+
+    public void completeAnalysis(String expectedImageUrl) {
+        this.expectedImageUrl = expectedImageUrl;
+        this.analysisStatus = BodyCheckStatus.COMPLETED;
+    }
+
+    public void failAnalysis() {
+        this.expectedImageUrl = null;
+        this.analysisStatus = BodyCheckStatus.FAILED;
     }
 
     public Long getId() { return id; }

@@ -119,7 +119,10 @@ DELETE /api/v1/ai/nutrition/analyses/{analysisId}
 POST /api/v1/care/body-checks/{bodyCheckId}/analysis
 ```
 
-응답 상태는 `ANALYZING`, `COMPLETED`, `FAILED`입니다. 결과는 기존 눈바디 조회의 `expectedImageUrl`에서 확인합니다.
+요청 처리 중 DB 상태는 `ANALYZING`이며, 동기 호출 성공 시 `COMPLETED` 상태의 `BodyCheckResponse`와
+`expectedImageUrl`을 반환합니다. 생성 이미지는 인증이 필요한 비공개 이미지 URL입니다. 호출 실패 시
+DB 상태를 `FAILED`로 저장하고 `503 AI_SERVICE_UNAVAILABLE`을 반환합니다. AI 이미지는 실제 변화를
+보장하거나 의료 결과를 예측하는 자료가 아니라 보수적인 웰니스 변화 참고 이미지로 취급합니다.
 
 ### 추천 시술
 
@@ -236,7 +239,7 @@ GET  /api/v1/ai/conversations/{conversationId}
 | 모델 | `OPENAI_MODEL` | `gpt-5.6-terra` |
 | Base URL | `OPENAI_BASE_URL` | `https://api.openai.com/v1` |
 | 연결 제한시간 | `OPENAI_CONNECT_TIMEOUT_SECONDS` | 10초 |
-| 응답 제한시간 | `OPENAI_READ_TIMEOUT_SECONDS` | 60초 |
+| 응답 제한시간 | `OPENAI_READ_TIMEOUT_SECONDS` | 120초 |
 
 식단·추천 시술·리포트는 JSON Schema의 엄격한 구조화 출력을 사용합니다. 챗봇은 텍스트 출력을 사용합니다. 모든 요청은 제공자 측 저장을 끈 `store=false`, 추론 강도 `low`로 호출하며 네트워크·5xx 장애만 1회 재시도합니다.
 

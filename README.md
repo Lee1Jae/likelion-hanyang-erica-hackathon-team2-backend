@@ -23,7 +23,7 @@ docker compose up -d
 | OpenAPI JSON | `http://localhost:8080/v3/api-docs` |
 | Health check | `http://localhost:8080/actuator/health` |
 
-운영 배포에서는 `DB_URL`, `DB_USERNAME`, `DB_PASSWORD`, `JWT_SECRET`, `CORS_ALLOWED_ORIGINS`를 반드시 환경변수로 설정합니다. AI 기능에는 `OPENAI_API_KEY`가 추가로 필요하며 모델은 `OPENAI_MODEL`로 변경할 수 있습니다. Railway는 저장소 루트의 `Dockerfile`과 `railway.json`을 사용하며, `PORT` 환경변수는 자동 반영됩니다.
+운영 배포에서는 `DB_URL`, `DB_USERNAME`, `DB_PASSWORD`, `JWT_SECRET`, `CORS_ALLOWED_ORIGINS`, `PUBLIC_BASE_URL`을 반드시 환경변수로 설정합니다. `PUBLIC_BASE_URL`은 외부 HTTPS 백엔드 주소입니다. AI 기능에는 `OPENAI_API_KEY`가 추가로 필요하며 모델은 `OPENAI_MODEL`로 변경할 수 있습니다. Railway는 저장소 루트의 `Dockerfile`과 `railway.json`을 사용하며, `PORT` 환경변수는 자동 반영됩니다.
 
 기본 로컬 DB 계정은 `compose.yml`과 일치합니다. 운영 환경에서는 `.env.example`을 참고해 비밀값을 환경변수로 주입하며 실제 `.env`는 커밋하지 않습니다.
 
@@ -81,7 +81,7 @@ docker compose up -d
 | AI 챗봇 | POST / GET | `/ai/chat`, `/ai/conversations...` | ✅ 완료 |
 | AI 리포트 | POST / GET | `/ai/reports...` | ✅ 완료 |
 | AI 추천 시술 | POST | `/ai/procedures/recommendations` | ✅ 완료 |
-| 눈바디 AI 예상 이미지 | - | `/care/body-checks/.../analysis` | 🟡 후순위 |
+| 눈바디 AI 예상 이미지 | POST | `/care/body-checks/{bodyCheckId}/analysis` | ✅ 완료 |
 
 `/auth/reissue`, `/auth/logout`, `/diaries/{date}`는 기존 프론트·테스트 호환을 위해 당분간 유지합니다. 프론트 전환이 끝난 뒤 제거 여부를 팀에서 결정합니다.
 
