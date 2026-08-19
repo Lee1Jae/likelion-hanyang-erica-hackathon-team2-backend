@@ -1,6 +1,7 @@
 package com.bloom.backend;
 
 import static org.mockito.ArgumentMatchers.*;
+import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.*;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.*;
@@ -134,6 +135,9 @@ class AiFeatureIntegrationTests {
                 .andExpect(jsonPath("$.totalCarbs").value(48))
                 .andExpect(jsonPath("$.totalProtein").value(36))
                 .andExpect(jsonPath("$.totalFat").value(6));
+        verify(aiClient).structured(anyString(), argThat(input -> input instanceof String
+                        && ((String) input).startsWith("추천 입력(JSON): ")),
+                eq("meal_recommendations"), any(JsonNode.class));
     }
 
     @Test

@@ -86,8 +86,9 @@ public class AiCareService {
         } catch (Exception exception) {
             input.put("personalization", Map.of());
         }
+        String recommendationInput = "추천 입력(JSON): " + objectMapper.valueToTree(input);
         JsonNode result = aiClient.structured(MEAL_RECOMMENDATION_INSTRUCTIONS,
-                objectMapper.valueToTree(input), "meal_recommendations", mealRecommendationSchema());
+                recommendationInput, "meal_recommendations", mealRecommendationSchema());
         List<RecommendedFoodItem> foods = objectMapper.convertValue(
                 result.path("foods"), new TypeReference<>() {});
         return new MealRecommendationResponse(
