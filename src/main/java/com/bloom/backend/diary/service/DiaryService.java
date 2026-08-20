@@ -56,16 +56,17 @@ public class DiaryService {
 
     private DiaryResponse buildDiaryResponse(Diary diary) {
         List<Meal> meals = mealRepository.findAllByDiaryIdOrderByIdAsc(diary.getId());
+        List<MealResponse> mealResponses = meals.stream().map(MealResponse::from).toList();
         List<Activity> activities = activityRepository.findAllByDiaryIdOrderByIdAsc(diary.getId());
-        int totalCalories = sumNullable(meals.stream().map(Meal::getCalories).toList());
-        boolean nutritionIncomplete = meals.stream().anyMatch(meal -> meal.getCalories() == null
-                || meal.getCarbs() == null || meal.getProtein() == null || meal.getFat() == null);
+        int totalCalories = sumNullable(mealResponses.stream().map(MealResponse::kcal).toList());
+        boolean nutritionIncomplete = mealResponses.stream().anyMatch(meal -> meal.kcal() == null
+                || meal.carbs() == null || meal.protein() == null || meal.fat() == null);
         int totalActivity = activities.stream().mapToInt(Activity::getBurnedKcal).sum();
 
         var previousDiary = diaryRepository.findByUserIdAndDate(diary.getDiaryUserId(), diary.getDate().minusDays(1));
         Integer calorieChange = previousDiary.map(value -> totalCalories
                 - sumNullable(mealRepository.findAllByDiaryIdOrderByIdAsc(value.getId()).stream()
-                .map(Meal::getCalories).toList())).orElse(null);
+                .map(MealResponse::from).map(MealResponse::kcal).toList())).orElse(null);
         Integer activityChange = previousDiary.map(value -> totalActivity
                 - activityRepository.findAllByDiaryIdOrderByIdAsc(value.getId()).stream().mapToInt(Activity::getBurnedKcal).sum()).orElse(null);
         BigDecimal conditionChange = previousDiary
@@ -77,11 +78,11 @@ public class DiaryService {
                 diary.getWeightKg(), diary.getWaterMl(), diary.getSkinCondition(), diary.getMenstrualStatus(),
                 totalCalories, calorieChange, MVP_RECOMMENDED_CALORIES, MVP_RECOMMENDED_CALORIES - totalCalories,
                 totalActivity, activityChange,
-                sumNullable(meals.stream().map(Meal::getCarbs).toList()),
-                sumNullable(meals.stream().map(Meal::getProtein).toList()),
-                sumNullable(meals.stream().map(Meal::getFat).toList()),
+                sumNullable(mealResponses.stream().map(MealResponse::carbs).toList()),
+                sumNullable(mealResponses.stream().map(MealResponse::protein).toList()),
+                sumNullable(mealResponses.stream().map(MealResponse::fat).toList()),
                 nutritionIncomplete,
-                meals.stream().map(MealResponse::from).toList(),
+                mealResponses,
                 activities.stream().map(ActivityResponse::from).toList());
     }
 
@@ -121,9 +122,11 @@ public class DiaryService {
                 .collect(Collectors.groupingBy(activity -> activity.getDiary().getId()));
         return diaries.stream().map(diary -> {
             List<Meal> meals = mealsByDiaryId.getOrDefault(diary.getId(), Collections.emptyList());
+            List<MealResponse> mealResponses = meals.stream().map(MealResponse::from).toList();
             List<Activity> activities = activitiesByDiaryId.getOrDefault(diary.getId(), Collections.emptyList());
             return new DiaryHistoryItem(diary.getDate(), diary.getWeightKg(), diary.getEmotionScore(),
-                    diary.getBodyScore(), diary.getWaterMl(), sumNullable(meals.stream().map(Meal::getCalories).toList()),
+                    diary.getBodyScore(), diary.getWaterMl(),
+                    sumNullable(mealResponses.stream().map(MealResponse::kcal).toList()),
                     activities.stream().mapToInt(Activity::getSteps).sum(),
                     activities.stream().mapToInt(Activity::getExerciseMinutes).sum(),
                     activities.stream().mapToInt(Activity::getBurnedKcal).sum(),

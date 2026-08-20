@@ -330,6 +330,7 @@ AI 기능은 [AI API 구현 명세](docs/AI_API_DRAFT.md)에 공개 계약과 �
 
 - 외부 JSON 필드 변경은 프론트 타입, Swagger, README, MVP 명세를 함께 수정합니다.
 - 외부 JSON은 `foodName`, `kcal`, `carbs`, `protein`, `fat`을 사용합니다. DB 칼럼명 `calories`는 내부 구현이므로 API에 노출하지 않습니다.
+- 탄단지가 모두 알려진 상태에서 kcal이 0/null이면 4·4·9 공식으로 보정하고, kcal만 알려진 상태의 탄단지 0은 null로 정규화합니다.
 - 계산값은 DB에 중복 저장하지 않고 조회 시 계산합니다.
 - `main`에는 테스트와 `bootJar` 생성이 통과한 코드만 반영합니다.
 - 자세한 브랜치·PR·계약 변경 절차는 [CONTRIBUTING.md](CONTRIBUTING.md)를 따릅니다.

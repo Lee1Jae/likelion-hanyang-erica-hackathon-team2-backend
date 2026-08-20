@@ -1,6 +1,7 @@
 package com.bloom.backend.ai.nutrition.domain;
 
 import com.bloom.backend.global.entity.BaseTimeEntity;
+import com.bloom.backend.diary.domain.NutritionValues;
 import jakarta.persistence.*;
 import java.math.BigDecimal;
 
@@ -32,17 +33,10 @@ public class DraftFood extends BaseTimeEntity {
                      Integer kcal, Integer carbs, Integer protein, Integer fat,
                      BigDecimal confidence, NutritionSource source) {
         this.analysis = analysis; this.confidence = confidence; this.source = source;
-        update(foodName, amount, amountUnit, kcal, carbs, protein, fat);
-    }
-    public void update(String foodName, BigDecimal amount, String amountUnit,
-                       Integer kcal, Integer carbs, Integer protein, Integer fat) {
-        if (foodName != null) this.foodName = foodName;
-        if (amount != null) this.amount = amount;
-        if (amountUnit != null) this.amountUnit = amountUnit;
-        if (kcal != null) this.kcal = kcal;
-        if (carbs != null) this.carbs = carbs;
-        if (protein != null) this.protein = protein;
-        if (fat != null) this.fat = fat;
+        this.foodName = foodName;
+        this.amount = amount;
+        this.amountUnit = amountUnit;
+        replaceNutrition(kcal, carbs, protein, fat);
     }
     public void patchFoodName(String value) { this.foodName = value; }
     public void patchAmount(BigDecimal value) { this.amount = value; }
@@ -51,6 +45,14 @@ public class DraftFood extends BaseTimeEntity {
     public void patchCarbs(Integer value) { this.carbs = value; }
     public void patchProtein(Integer value) { this.protein = value; }
     public void patchFat(Integer value) { this.fat = value; }
+    public void normalizeNutrition() { replaceNutrition(kcal, carbs, protein, fat); }
+    private void replaceNutrition(Integer kcal, Integer carbs, Integer protein, Integer fat) {
+        NutritionValues nutrition = NutritionValues.normalize(kcal, carbs, protein, fat);
+        this.kcal = nutrition.kcal();
+        this.carbs = nutrition.carbs();
+        this.protein = nutrition.protein();
+        this.fat = nutrition.fat();
+    }
     public Long getId() { return id; }
     public String getFoodName() { return foodName; }
     public BigDecimal getAmount() { return amount; }

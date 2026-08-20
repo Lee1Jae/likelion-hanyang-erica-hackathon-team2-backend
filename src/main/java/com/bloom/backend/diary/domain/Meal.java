@@ -63,12 +63,13 @@ public class Meal extends BaseTimeEntity {
     }
 
     public void update(MealType mealType, String foodName, Integer calories, Integer carbs, Integer protein, Integer fat) {
+        NutritionValues nutrition = NutritionValues.normalize(calories, carbs, protein, fat);
         this.mealType = mealType;
         this.foodName = foodName;
-        this.calories = calories;
-        this.carbs = carbs;
-        this.protein = protein;
-        this.fat = fat;
+        this.calories = nutrition.kcal();
+        this.carbs = nutrition.carbs();
+        this.protein = nutrition.protein();
+        this.fat = nutrition.fat();
     }
 
     public Long getId() { return id; }

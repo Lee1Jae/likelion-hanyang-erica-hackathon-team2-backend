@@ -131,6 +131,44 @@ class DiaryControllerIntegrationTests {
     }
 
     @Test
+    void normalizesInconsistentCaloriesAndMacros() throws Exception {
+        String accessToken = signupAndLogin();
+
+        mockMvc.perform(post("/api/v1/diaries/2026-08-17/meals")
+                        .header("Authorization", "Bearer " + accessToken)
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("""
+                                {"mealType":"BREAKFAST","foodName":"밥, 김치, 제육볶음",
+                                 "kcal":0,"carbs":91,"protein":35,"fat":29}
+                                """))
+                .andExpect(status().isCreated())
+                .andExpect(jsonPath("$.kcal").value(765))
+                .andExpect(jsonPath("$.carbs").value(91));
+
+        mockMvc.perform(post("/api/v1/diaries/2026-08-17/meals")
+                        .header("Authorization", "Bearer " + accessToken)
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("""
+                                {"mealType":"LUNCH","foodName":"영양소 미상 음식",
+                                 "kcal":500,"carbs":0,"protein":0,"fat":0}
+                                """))
+                .andExpect(status().isCreated())
+                .andExpect(jsonPath("$.kcal").value(500))
+                .andExpect(jsonPath("$.carbs").doesNotExist())
+                .andExpect(jsonPath("$.protein").doesNotExist())
+                .andExpect(jsonPath("$.fat").doesNotExist());
+
+        mockMvc.perform(get("/api/v1/diaries/2026-08-17")
+                        .header("Authorization", "Bearer " + accessToken))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.totalCalories").value(1265))
+                .andExpect(jsonPath("$.carbs").value(91))
+                .andExpect(jsonPath("$.protein").value(35))
+                .andExpect(jsonPath("$.fat").value(29))
+                .andExpect(jsonPath("$.nutritionIncomplete").value(true));
+    }
+
+    @Test
     void allowsUnknownNutritionAndExcludesItFromTotals() throws Exception {
         String accessToken = signupAndLogin();
 

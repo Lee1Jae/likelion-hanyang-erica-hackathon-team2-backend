@@ -26,6 +26,8 @@ public class NutritionAnalysisService {
     private static final String INSTRUCTIONS = """
             음식 사진 또는 설명에서 서로 다른 음식을 최대 10개 식별한다. 음식의 양과 kcal·탄수화물·단백질·지방을
             현실적인 범위에서 추정하되 확인할 수 없으면 반드시 null로 반환한다. 사진에 없는 음식은 만들지 않는다.
+            탄수화물·단백질·지방을 모두 추정했다면 kcal은 대략 탄수화물×4 + 단백질×4 + 지방×9와 일관되어야 한다.
+            영양정보를 모르는 경우 0으로 채우지 말고 null로 반환한다.
             영양값은 모두 1회 제공량 기준의 0 이상 정수이고, confidence는 0~1이다. 의료 조언은 하지 않는다.
             """;
     private final NutritionAnalysisRepository analysisRepository;
@@ -104,6 +106,7 @@ public class NutritionAnalysisService {
         if (request.carbsPresent()) food.patchCarbs(request.carbs());
         if (request.proteinPresent()) food.patchProtein(request.protein());
         if (request.fatPresent()) food.patchFat(request.fat());
+        food.normalizeNutrition();
         return DraftFoodResponse.from(foodRepository.save(food));
     }
 
@@ -172,9 +175,18 @@ public class NutritionAnalysisService {
             throw new BusinessException(ErrorCode.NUTRITION_INPUT_INVALID);
         }
     }
-    private Integer integer(JsonNode node, String field) { return node.path(field).isNull() ? null : node.path(field).asInt(); }
-    private BigDecimal decimal(JsonNode node, String field) { return node.path(field).isNull() ? null : node.path(field).decimalValue(); }
-    private String nullableText(JsonNode node, String field) { return node.path(field).isNull() ? null : node.path(field).asText(); }
+    private Integer integer(JsonNode node, String field) {
+        JsonNode value = node.get(field);
+        return value == null || value.isNull() ? null : value.intValue();
+    }
+    private BigDecimal decimal(JsonNode node, String field) {
+        JsonNode value = node.get(field);
+        return value == null || value.isNull() ? null : value.decimalValue();
+    }
+    private String nullableText(JsonNode node, String field) {
+        JsonNode value = node.get(field);
+        return value == null || value.isNull() ? null : value.asText();
+    }
 
     private JsonNode nutritionSchema() {
         Map<String, Object> nullableNumber = Map.of("type", List.of("number", "null"));

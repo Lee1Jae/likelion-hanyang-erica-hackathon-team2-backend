@@ -6,6 +6,7 @@ import com.bloom.backend.ai.dto.*;
 import com.bloom.backend.ai.repository.AiReportRepository;
 import com.bloom.backend.care.domain.BodyCheck;
 import com.bloom.backend.care.repository.BodyCheckRepository;
+import com.bloom.backend.diary.domain.NutritionValues;
 import com.bloom.backend.global.error.*;
 import com.bloom.backend.upload.service.ImageUploadService;
 import com.bloom.backend.user.domain.User;
@@ -89,8 +90,9 @@ public class AiCareService {
         String recommendationInput = "추천 입력(JSON): " + objectMapper.valueToTree(input);
         JsonNode result = aiClient.structured(MEAL_RECOMMENDATION_INSTRUCTIONS,
                 recommendationInput, "meal_recommendations", mealRecommendationSchema());
-        List<RecommendedFoodItem> foods = objectMapper.convertValue(
-                result.path("foods"), new TypeReference<>() {});
+        List<RecommendedFoodItem> foods = objectMapper.<List<RecommendedFoodItem>>convertValue(
+                result.path("foods"), new TypeReference<>() {}).stream()
+                .map(this::normalize).toList();
         return new MealRecommendationResponse(
                 result.path("title").asText(),
                 result.path("description").asText(),
@@ -208,5 +210,12 @@ public class AiCareService {
             total += nutrient;
         }
         return total;
+    }
+
+    private RecommendedFoodItem normalize(RecommendedFoodItem food) {
+        NutritionValues nutrition = NutritionValues.normalize(
+                food.kcal(), food.carbs(), food.protein(), food.fat());
+        return new RecommendedFoodItem(food.foodName(), food.amount(), food.amountUnit(),
+                nutrition.kcal(), nutrition.carbs(), nutrition.protein(), nutrition.fat());
     }
 }

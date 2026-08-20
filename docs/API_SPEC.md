@@ -193,6 +193,11 @@ DELETE /api/v1/meals/{mealId}
 
 `mealType`은 `BREAKFAST`, `LUNCH`, `DINNER`, `SNACK` 중 하나입니다. `kcal`, `carbs`, `protein`, `fat`은 알 수 없으면 null일 수 있습니다. 일일 합계는 null 항목을 제외해 계산하며 두 일일 조회 응답 모두 `nutritionIncomplete`로 일부 영양정보가 빠졌는지 알립니다.
 
+영양값의 0과 미기록은 구분합니다. 탄수화물·단백질·지방이 모두 알려져 있는데 `kcal`이 0 또는 null이면
+백엔드가 `탄수화물×4 + 단백질×4 + 지방×9`로 kcal을 보정합니다. 반대로 kcal은 양수인데 탄단지가
+전부 0이면 알 수 없는 값으로 판단해 탄단지를 null로 반환합니다. 프론트는 null을 `0g`으로 바꾸지 않고
+`-` 또는 `정보 없음`으로 표시해야 합니다.
+
 AI 식단 분석은 다음 하나의 API에서 `inputType=IMAGE` 또는 `inputType=TEXT`로 구분하며, 사진과 텍스트를 동시에 보내지 않습니다.
 
 ```http
